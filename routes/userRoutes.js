@@ -5,6 +5,6 @@ const {handleLogin, handleSignup, handleForgetPassword} = require('../controller
 router.post('/login',handleLogin)
 //signup route
 router.post('/signup',handleSignup)
-router.post('/forgetpassowrd',handleForgetPassword)
+router.post('/forgetpassword',handleForgetPassword)
 
 module.exports = router

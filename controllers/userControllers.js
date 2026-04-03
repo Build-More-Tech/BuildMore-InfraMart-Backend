@@ -1,94 +1,175 @@
-const User = require('../models/userModel')
+const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
-const jwt = require("jsonwebtoken");
 const { setUser } = require('../services/Auth');
-require('dotenv/config')
 
-function generateOTP() {
-    const otp = Math.floor(Math.random() * 900000 + 100000).toString()
-    return otp
-}
+// ==============================
+// 🔐 LOGIN CONTROLLER
+// ==============================
 async function handleLogin(req, res) {
     try {
-        const { email, password } = req.body
-        const normalizedEmail = email.toLowerCase().trim()
+        const { email, password } = req.body;
 
-        const user = await User.findOne({ email: normalizedEmail })
+        // ✅ Validation
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required"
+            });
+        }
 
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Check user exists
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
-            return res.status(401).json({ err: `invalid email` })
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email"
+            });
         }
-        if (!bcrypt.compareSync(password, user.password)) {
-            return res.status(401).json({ err: `invalid passoword` })
+
+        // Check password
+        const isMatch = bcrypt.compareSync(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password"
+            });
         }
-        const token = setUser(user)
-        return res.status(200).json({ token: token, message: 'login successfully' })
+
+        // Generate token
+        const token = setUser(user);
+
+        // Success response
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            token
+        });
+
     } catch (error) {
-        console.log(error)
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
 }
+
+// ==============================
+// 📝 SIGNUP CONTROLLER
+// ==============================
 async function handleSignup(req, res) {
     try {
-        const { name, phone, email, password } = req.body
-        
-        const normalizedEmail = email.toLowerCase().trim()
+        const { name, phone, email, password } = req.body;
 
-        const existingUser = await User.findOne({ email:normalizedEmail })
-        if (existingUser) {
-            return res.status(400).json({ message: "User already exists" })
+        // ✅ Validation (VERY IMPORTANT)
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields (name, email, password, phone) are required"
+            });
         }
 
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: normalizedEmail });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: "User already exists"
+            });
+        }
+
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
         const user = await User.create({
-            name: name,
+            name,
             email: normalizedEmail,
-            phone: phone,
+            phone,
             password: hashedPassword
         });
-        const token = setUser(user)
-        // const OTP = generateOTP()
-        // console.log(OTP)
-        // const hashedOTP = await bcrypt.hash(OTP, 5);
-        // also send otp to user
 
-        // const otpToken = jwt.sign(
-        //     {
-        //         email,
-        //         name,
-        //         password: hashedPassword,
-        //         otp: hashedOTP
-        //     },
-        //     process.env.JWT_SECRET,
-        //     { expiresIn: "5m" }
-        // );
+        // Generate token
+        const token = setUser(user);
+
+        // Success response
         return res.status(201).json({
-            token: token,
-            message: "Signup successfull",
+            success: true,
+            message: "Signup successful",
+            token
         });
 
     } catch (error) {
-        console.error(error)
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
 }
+
+// ==============================
+// 🔁 FORGOT PASSWORD CONTROLLER
+// ==============================
 async function handleForgetPassword(req, res) {
     try {
-        const { email, password } = req.body
-        const hashedPassword = await bcrypt.hash(password, 10)
-        const user = await User.findOneAndUpdate({ email: email }, {
-            $set: {
-                password: hashedPassword
-            }
-        },
-            { new: true }
-        )
-        if (!user) {
-            return res.status(404).json({ message: "Invalid email" })
-        }
-        return res.status(200).json({ message: "Password updated" })
-    } catch (error) {
-        console.log(error)
-        return
-    }
+        const { email, password } = req.body;
 
+        // ✅ Validation
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and new password are required"
+            });
+        }
+
+        // Normalize email
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update user password
+        const user = await User.findOneAndUpdate(
+            { email: normalizedEmail },
+            { $set: { password: hashedPassword } },
+            { new: true }
+        );
+
+        // If user not found
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "Invalid email"
+            });
+        }
+
+        // Success response
+        return res.status(200).json({
+            success: true,
+            message: "Password updated successfully"
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
 }
-module.exports = { handleLogin, handleSignup, handleForgetPassword }
+
+// ==============================
+// EXPORTS
+// ==============================
+module.exports = {
+    handleLogin,
+    handleSignup,
+    handleForgetPassword
+};

@@ -5,7 +5,9 @@ const userRoutes = require('./routes/userRoutes');
 const AdminRoutes = require('./routes/AdminRoutes');
 
 const { isAuthorized, isAdmin } = require('./services/IsAuthorized');
-require('dotenv/config')
+// require('dotenv/config')
+require('dotenv').config();
+console.log("MONGO_URI:", process.env.MONGO_URI);
 
 const app = express()
 //env 
