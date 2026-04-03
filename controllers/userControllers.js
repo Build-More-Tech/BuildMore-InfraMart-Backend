@@ -17,6 +17,15 @@ async function handleLogin(req, res) {
             });
         }
 
+        // ✅ Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
+        }
+
         // Normalize email
         const normalizedEmail = email.toLowerCase().trim();
 
@@ -64,11 +73,28 @@ async function handleSignup(req, res) {
     try {
         const { name, phone, email, password } = req.body;
 
-        // ✅ Validation (VERY IMPORTANT)
+        // ✅ Required fields validation
         if (!name || !email || !password || !phone) {
             return res.status(400).json({
                 success: false,
                 message: "All fields (name, email, password, phone) are required"
+            });
+        }
+
+        // ✅ Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
+        }
+
+        // ✅ Password length validation
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters long"
             });
         }
 
@@ -126,6 +152,23 @@ async function handleForgetPassword(req, res) {
             return res.status(400).json({
                 success: false,
                 message: "Email and new password are required"
+            });
+        }
+
+        // ✅ Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format"
+            });
+        }
+
+        // ✅ Password length validation
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 6 characters long"
             });
         }
 
