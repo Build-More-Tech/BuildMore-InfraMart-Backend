@@ -15,12 +15,19 @@ function isAuthorized(req, res, next) {
     req.user = user
     next()
 }
+
 function isAdmin(req, res, next) {
-    const role = req.user.role
-    if (role !== 'ADMIN') {
-        return res.status(401).json({ err: "Not Authorized", message: "No admin access" })
+    const role = req.user.role;
+
+    // ✅ handle case-insensitive check
+    if (!role || role.toLowerCase() !== 'admin') {
+        return res.status(403).json({
+            err: "Not Authorized",
+            message: "No admin access"
+        });
     }
-    next()
+
+    next();
 }
 
 module.exports = { isAdmin, isAuthorized }
