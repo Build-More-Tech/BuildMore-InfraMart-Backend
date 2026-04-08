@@ -1,12 +1,12 @@
 const Products = require('../models/ProductModel');
-const path = require('path');
+const { uploadBuffer } = require('../services/cloudinary');
 
 // ==============================
 // ➕ ADD PRODUCT (ADMIN)
 // ==============================
 async function addproduct(req, res) {
     try {
-        const { productName, desc, category, price, materialSpecifications, stock } = req.body;
+        const { productName, desc, category, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
 
         if (!productName || !category || !desc || price == null || stock == null) {
             return res.status(400).json({ message: "All fields are required" });
@@ -24,21 +24,22 @@ async function addproduct(req, res) {
             return res.status(400).json({ message: "Product images required" });
         }
 
-        let filenames = [];
-
-        req.files.forEach(item => {
-            const filename = `${Date.now()}_${Math.round(Math.random() * 1E9)}${path.extname(item.originalname)}`;
-            filenames.push(filename);
-        });
+        // Upload each image to Cloudinary and collect secure URLs
+        const imageUrls = await Promise.all(
+            req.files.map(file => uploadBuffer(file.buffer, 'buildmore/products'))
+        );
 
         const product = await Products.create({
             productName,
             desc,
             category,
             price: Number(price),
+            originalPrice: originalPrice ? Number(originalPrice) : undefined,
             materialSpecifications,
             stock: Number(stock),
-            productImages: filenames
+            productImages: imageUrls,
+            tier: tier || 'Standard Export',
+            bulkInfo: bulkInfo || undefined
         });
 
         return res.status(201).json({
