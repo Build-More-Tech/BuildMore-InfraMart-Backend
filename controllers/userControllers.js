@@ -1,6 +1,6 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
-const { setUser } = require('../services/Auth');
+const { setUser } = require('../services/auth');
 
 // ==============================
 // 🔐 LOGIN CONTROLLER
