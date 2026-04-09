@@ -1,4 +1,5 @@
 const Shipment = require('../models/ShipmentModel');
+const Order = require('../models/OrderModel');
 
 // ==============================
 // 📦 GET USER SHIPMENTS
@@ -44,13 +45,20 @@ async function adminCreateShipment(req, res) {
     try {
         const { orderId, userId, carrier, origin, destination, estimatedDelivery, freightClass, weight, dimensions } = req.body;
 
-        if (!userId) {
-            return res.status(400).json({ success: false, message: 'userId is required' });
+        // Auto-resolve userId from order if not provided
+        let resolvedUserId = userId;
+        if (!resolvedUserId && orderId) {
+            const order = await Order.findById(orderId).select('user');
+            if (order) resolvedUserId = order.user;
+        }
+
+        if (!resolvedUserId) {
+            return res.status(400).json({ success: false, message: 'userId or a valid orderId is required' });
         }
 
         const shipment = await Shipment.create({
             order: orderId || undefined,
-            user: userId,
+            user: resolvedUserId,
             carrier,
             origin,
             destination,

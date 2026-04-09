@@ -52,22 +52,28 @@ async function uploadSpecSheet(req, res) {
     try {
         const { productId, title, fileType, version, description } = req.body;
 
-        if (!productId || !title) {
-            return res.status(400).json({ success: false, message: 'productId and title are required' });
+        if (!title) {
+            return res.status(400).json({ success: false, message: 'title is required' });
         }
 
-        const product = await Product.findById(productId);
-        if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+        // Validate productId only if provided
+        let resolvedProduct = undefined;
+        if (productId) {
+            const product = await Product.findById(productId);
+            if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+            resolvedProduct = productId;
+        }
 
         let fileUrl, fileSize;
         if (req.file) {
-            const filename = `${productId}_${Date.now()}_${title.replace(/\s+/g, '_')}`;
+            const prefix = resolvedProduct || 'general';
+            const filename = `${prefix}_${Date.now()}_${title.replace(/\s+/g, '_')}`;
             fileUrl = await uploadRawFile(req.file.buffer, 'buildmore/specs', filename);
             fileSize = `${(req.file.size / 1024).toFixed(1)} KB`;
         }
 
         const spec = await SpecSheet.create({
-            product: productId,
+            product: resolvedProduct,
             title,
             fileUrl,
             fileType: fileType || 'PDF',
