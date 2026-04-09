@@ -83,6 +83,34 @@ async function addItem(req, res) {
 }
 
 // ==============================
+// ✏️ UPDATE ITEM IN RFQ
+// ==============================
+async function updateItem(req, res) {
+    try {
+        const { quantity, targetPrice, notes } = req.body;
+
+        const rfq = await RFQ.findOne({ _id: req.params.id, user: req.user._id });
+        if (!rfq) return res.status(404).json({ success: false, message: 'RFQ not found' });
+        if (rfq.status !== 'DRAFT') {
+            return res.status(400).json({ success: false, message: 'Can only modify DRAFT RFQs' });
+        }
+
+        const item = rfq.items.id(req.params.itemId);
+        if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+
+        if (quantity !== undefined && quantity >= 1) item.quantity = quantity;
+        if (targetPrice !== undefined) item.targetPrice = targetPrice || undefined;
+        if (notes !== undefined) item.notes = notes || undefined;
+
+        await rfq.save();
+        return res.status(200).json({ success: true, rfq });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// ==============================
 // ❌ REMOVE ITEM FROM RFQ
 // ==============================
 async function removeItem(req, res) {
@@ -180,6 +208,7 @@ module.exports = {
     getUserRFQs,
     getRFQById,
     addItem,
+    updateItem,
     removeItem,
     submitRFQ,
     adminGetAllRFQs,

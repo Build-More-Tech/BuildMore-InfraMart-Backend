@@ -16,17 +16,21 @@ router.post('/', isAuthorized, upload.single('document'), uploadDoc);
 // GET /api/compliance — get all user's compliance docs
 router.get('/', isAuthorized, getUserDocs);
 
-// GET /api/compliance/:id — get single doc
-router.get('/:id', isAuthorized, getDocById);
-
-// DELETE /api/compliance/:id — delete doc
-router.delete('/:id', isAuthorized, deleteDoc);
-
 // ==============================
 // 🔐 ADMIN COMPLIANCE ROUTES
 // ==============================
 
 // GET /api/compliance/admin/all
 router.get('/admin/all', isAuthorized, isAdmin, adminGetAllDocs);
+
+// ==============================
+// 📋 USER COMPLIANCE PARAMETERIZED ROUTES
+// ==============================
+
+// GET /api/compliance/:id — get single doc
+router.get('/:id', isAuthorized, getDocById);
+
+// DELETE /api/compliance/:id — delete doc
+router.delete('/:id', isAuthorized, deleteDoc);
 
 module.exports = router;
