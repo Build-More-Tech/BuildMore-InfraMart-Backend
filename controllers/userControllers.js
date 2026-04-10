@@ -166,10 +166,85 @@ async function handleForgetPassword(req, res) {
 }
 
 // ==============================
+// 👤 GET USER PROFILE
+// ==============================
+async function getUserProfile(req, res) {
+    try {
+        const userId = req.user._id; // comes from JWT middleware
+
+        const user = await User.findById(userId).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}
+
+// ==============================
+// ✏️ UPDATE USER PROFILE
+// ==============================
+async function updateUserProfile(req, res) {
+    try {
+        const userId = req.user._id;
+
+        const { name, phone } = req.body;
+
+        // ✅ validation
+        if (!name && !phone) {
+            return res.status(400).json({
+                success: false,
+                message: "At least one field (name or phone) is required"
+            });
+        }
+
+        const updates = {};
+
+        if (name) updates.name = name;
+        if (phone) updates.phone = phone;
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            updates,
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
+    }
+}
+
+// ==============================
 // EXPORTS
 // ==============================
 module.exports = {
     handleLogin,
     handleSignup,
-    handleForgetPassword
+    handleForgetPassword,
+    getUserProfile,
+    updateUserProfile
 };
