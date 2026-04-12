@@ -8,6 +8,8 @@ require('dotenv').config();
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+
 
 const app = express();
 
@@ -45,6 +47,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes); // 🌐 Public APIs
 app.use('/api/admin', adminRoutes);      // 🔐 Admin APIs
+app.use('/api/orders', orderRoutes);     // Order APIs
 
 // ==============================
 // 🟢 SERVER
