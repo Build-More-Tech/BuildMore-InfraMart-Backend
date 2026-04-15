@@ -21,7 +21,7 @@ const upload = multer({ storage });
 // ==============================
 
 // ➕ Add product
-router.post('/products', isAuthorized, isAdmin, upload.array('productImages', 5), addproduct);
+router.post('/products', isAuthorized, isAdmin, upload.array('images', 5), addproduct);
 
 // 📦 Get all products (admin)
 router.get('/products', isAuthorized, isAdmin, getAllProducts);

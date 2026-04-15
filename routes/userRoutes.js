@@ -1,32 +1,35 @@
 const express = require('express');
 const router = express.Router();
-
 const {
     handleLogin,
     handleSignup,
     handleForgetPassword,
-    getUserProfile,
-    updateUserProfile
+    getProfile,
+    updateProfile,
+    addAddress,
+    updateAddress,
+    deleteAddress
 } = require('../controllers/userControllers');
-
-// ✅ import middleware (FIX PATH if needed)
 const { isAuthorized } = require('../services/isAuthorized');
 
 // ==============================
-// 🔐 AUTH ROUTES
+// 🔓 PUBLIC AUTH ROUTES
 // ==============================
 router.post('/login', handleLogin);
 router.post('/signup', handleSignup);
 router.post('/forgetpassword', handleForgetPassword);
 
 // ==============================
-// 👤 PROFILE ROUTES
+// 🔐 PROTECTED PROFILE ROUTES
 // ==============================
+router.get('/profile', isAuthorized, getProfile);
+router.put('/profile', isAuthorized, updateProfile);
 
-// ✅ Get logged-in user profile
-router.get('/profile', isAuthorized, getUserProfile);
-
-// ✅ Update profile
-router.patch('/profile', isAuthorized, updateUserProfile);
+// ==============================
+// 📍 ADDRESS ROUTES
+// ==============================
+router.post('/address', isAuthorized, addAddress);
+router.put('/address/:addressId', isAuthorized, updateAddress);
+router.delete('/address/:addressId', isAuthorized, deleteAddress);
 
 module.exports = router;

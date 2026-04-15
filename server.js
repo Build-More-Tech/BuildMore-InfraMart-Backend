@@ -4,12 +4,15 @@ const mongoose = require('mongoose');
 
 require('dotenv').config();
 
-// ✅ ROUTES (consistent lowercase naming)
+// ✅ ROUTES
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-
+const rfqRoutes = require('./routes/rfqRoutes');
+const shipmentRoutes = require('./routes/shipmentRoutes');
+const complianceRoutes = require('./routes/complianceRoutes');
+const specsRoutes = require('./routes/specsRoutes');
 
 const app = express();
 
@@ -45,9 +48,13 @@ app.use(express.urlencoded({ extended: true }));
 // 🚀 ROUTES
 // ==============================
 app.use('/api/user', userRoutes);
-app.use('/api/products', productRoutes); // 🌐 Public APIs
-app.use('/api/admin', adminRoutes);      // 🔐 Admin APIs
-app.use('/api/orders', orderRoutes);     // Order APIs
+app.use('/api/products', productRoutes);     // 🌐 Public product APIs
+app.use('/api/admin', adminRoutes);          // 🔐 Admin product APIs
+app.use('/api/orders', orderRoutes);         // 🛒 Order management
+app.use('/api/rfqs', rfqRoutes);             // 📋 RFQ system
+app.use('/api/shipments', shipmentRoutes);   // 📦 Logistics/shipment tracking
+app.use('/api/compliance', complianceRoutes); // 📋 Compliance documents
+app.use('/api/specs', specsRoutes);          // 📄 Technical spec sheets
 
 // ==============================
 // 🟢 SERVER
