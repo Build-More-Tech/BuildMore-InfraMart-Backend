@@ -22,7 +22,7 @@ const complianceDocSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-compute status before save
-complianceDocSchema.pre('save', function (next) {
+complianceDocSchema.pre('save', function () {
     if (this.expiresAt) {
         const now = new Date();
         const thirtyDays = 30 * 24 * 60 * 60 * 1000;
@@ -34,7 +34,6 @@ complianceDocSchema.pre('save', function (next) {
             this.status = 'ACTIVE';
         }
     }
-    next();
 });
 
 module.exports = mongoose.model('compliancedoc', complianceDocSchema);

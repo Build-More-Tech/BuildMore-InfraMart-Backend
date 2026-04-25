@@ -34,12 +34,11 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate order number before save
-orderSchema.pre('save', async function (next) {
+orderSchema.pre('save', async function () {
     if (!this.orderNumber) {
         const count = await mongoose.model('order').countDocuments();
         this.orderNumber = `BM-${String(count + 1).padStart(6, '0')}`;
     }
-    next();
 });
 
 module.exports = mongoose.model('order', orderSchema);
