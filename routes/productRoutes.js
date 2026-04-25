@@ -14,10 +14,10 @@ const {
 // ✅ Get all products
 router.get('/', getProducts);
 
+// ✅ Get categories (must be before /:id to avoid being caught as an id param)
+router.get('/categories/all', getCategories);
+
 // ✅ Get single product
 router.get('/:id', getProductById);
-
-// ✅ Get categories
-router.get('/categories/all', getCategories);
 
 module.exports = router;

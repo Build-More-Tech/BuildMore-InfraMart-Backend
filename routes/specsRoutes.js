@@ -4,7 +4,10 @@ const multer = require('multer');
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 const { getSpecsByProduct, getAllSpecs, uploadSpecSheet, deleteSpecSheet } = require('../controllers/specsController');
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024 } // 20 MB
+});
 
 // ==============================
 // 📄 PUBLIC SPEC ROUTES

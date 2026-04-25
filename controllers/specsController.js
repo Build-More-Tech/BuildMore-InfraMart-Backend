@@ -1,6 +1,6 @@
 const SpecSheet = require('../models/SpecSheetModel');
 const Product = require('../models/ProductModel');
-const { uploadRawFile } = require('../services/cloudinary');
+const { uploadRawFile, extractPublicId, deleteRawFile } = require('../services/cloudinary');
 
 // ==============================
 // 📦 GET SPEC SHEETS FOR A PRODUCT
@@ -91,6 +91,12 @@ async function deleteSpecSheet(req, res) {
     try {
         const spec = await SpecSheet.findByIdAndDelete(req.params.id);
         if (!spec) return res.status(404).json({ success: false, message: 'Spec sheet not found' });
+
+        if (spec.fileUrl) {
+            const publicId = extractPublicId(spec.fileUrl);
+            if (publicId) await deleteRawFile(publicId).catch(() => {});
+        }
+
         return res.status(200).json({ success: true, message: 'Spec sheet deleted' });
     } catch (error) {
         console.error(error);

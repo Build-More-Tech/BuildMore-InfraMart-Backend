@@ -13,8 +13,15 @@ const {
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 
 const multer = require('multer');
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB per image
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowed.includes(file.mimetype)) return cb(null, true);
+        cb(new Error('Only JPEG, PNG, and WEBP images are allowed'));
+    }
+});
 
 // ==============================
 // 🔐 ADMIN PRODUCT ROUTES

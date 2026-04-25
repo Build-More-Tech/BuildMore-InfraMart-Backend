@@ -1,5 +1,5 @@
 const ComplianceDoc = require('../models/ComplianceDocModel');
-const { uploadRawFile } = require('../services/cloudinary');
+const { uploadRawFile, extractPublicId, deleteRawFile } = require('../services/cloudinary');
 
 // ==============================
 // ➕ UPLOAD COMPLIANCE DOCUMENT
@@ -80,6 +80,12 @@ async function deleteDoc(req, res) {
     try {
         const doc = await ComplianceDoc.findOneAndDelete({ _id: req.params.id, user: req.user._id });
         if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+
+        if (doc.documentUrl) {
+            const publicId = extractPublicId(doc.documentUrl);
+            if (publicId) await deleteRawFile(publicId).catch(() => {});
+        }
+
         return res.status(200).json({ success: true, message: 'Document deleted' });
     } catch (error) {
         console.error(error);

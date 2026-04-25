@@ -5,8 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node scripts/seed.js",
-    "dev": "NODE_ENV=development nodemon --env-file=.env.local server.js",
-    "start": "NODE_ENV=production node --env-file=.env.production server.js"
+    "dev": "NODE_ENV=development nodemon server.js",
+    "start": "NODE_ENV=production node server.js"
   },
   "keywords": [],
   "author": "",
@@ -18,9 +18,12 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.0",
-    "multer": "^2.1.1",
+    "multer": "^2.1.1"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.14"
   }
 }

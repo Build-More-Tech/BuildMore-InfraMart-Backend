@@ -1,5 +1,5 @@
 const Products = require('../models/ProductModel');
-const { uploadBuffer } = require('../services/cloudinary');
+const { uploadBuffer, deleteImage, extractPublicId } = require('../services/cloudinary');
 
 // ==============================
 // ➕ ADD PRODUCT (ADMIN)
@@ -77,9 +77,24 @@ async function getAllProducts(req, res) {
 // ==============================
 async function updateProduct(req, res) {
     try {
+        const { productName, desc, category, subcategory, price, originalPrice,
+            materialSpecifications, stock, tier, bulkInfo } = req.body;
+
+        const updates = {};
+        if (productName !== undefined) updates.productName = productName;
+        if (desc !== undefined) updates.desc = desc;
+        if (category !== undefined) updates.category = category;
+        if (subcategory !== undefined) updates.subcategory = subcategory;
+        if (price !== undefined) updates.price = Number(price);
+        if (originalPrice !== undefined) updates.originalPrice = Number(originalPrice);
+        if (materialSpecifications !== undefined) updates.materialSpecifications = materialSpecifications;
+        if (stock !== undefined) updates.stock = Number(stock);
+        if (tier !== undefined) updates.tier = tier;
+        if (bulkInfo !== undefined) updates.bulkInfo = bulkInfo;
+
         const product = await Products.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updates,
             { new: true, runValidators: true }
         );
 
@@ -87,10 +102,7 @@ async function updateProduct(req, res) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        return res.status(200).json({
-            success: true,
-            product
-        });
+        return res.status(200).json({ success: true, product });
 
     } catch (error) {
         return res.status(500).json({ message: "Internal server error" });
@@ -108,10 +120,17 @@ async function deleteProduct(req, res) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        return res.status(200).json({
-            success: true,
-            message: "Deleted successfully"
-        });
+        // Delete images from Cloudinary (non-blocking — don't fail the request)
+        if (product.productImages && product.productImages.length > 0) {
+            await Promise.allSettled(
+                product.productImages.map(url => {
+                    const publicId = extractPublicId(url);
+                    return publicId ? deleteImage(publicId) : Promise.resolve();
+                })
+            );
+        }
+
+        return res.status(200).json({ success: true, message: "Deleted successfully" });
 
     } catch (error) {
         return res.status(500).json({ message: "Internal server error" });
