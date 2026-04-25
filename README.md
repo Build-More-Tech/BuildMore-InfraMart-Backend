@@ -109,7 +109,7 @@ Tokens are issued on login and expire after **30 days**.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/` | No | List all products (supports `search`, `category` query params) |
+| GET | `/` | No | List all products (supports `search`, `category`, `subcategory` query params) |
 | GET | `/categories/all` | No | Get all available categories |
 | GET | `/:id` | No | Get a single product by ID |
 
@@ -234,7 +234,8 @@ Manage technical specification files linked to products.
 |---|---|---|
 | productName | String | Required |
 | desc | String | Max 2000 chars |
-| category | String | Required |
+| category | String | Required — leaf category (e.g., `Cement & Concrete`) |
+| subcategory | String | Optional — subcategory within leaf (e.g., `AAC Blocks`) |
 | price | Number | Required |
 | originalPrice | Number | Pre-discount price |
 | productImages | [String] | Cloudinary URLs |

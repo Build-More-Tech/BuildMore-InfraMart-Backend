@@ -5,7 +5,7 @@ const Products = require('../models/ProductModel');
 // ==============================
 async function getProducts(req, res) {
     try {
-        const { search, category } = req.query;
+        const { search, category, subcategory } = req.query;
 
         let filter = {};
 
@@ -17,6 +17,11 @@ async function getProducts(req, res) {
         // 📂 Category filter
         if (category) {
             filter.category = category;
+        }
+
+        // 📂 Subcategory filter
+        if (subcategory) {
+            filter.subcategory = subcategory;
         }
 
         const products = await Products.find(filter).sort({ createdAt: -1 });

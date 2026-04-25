@@ -14,6 +14,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    subcategory: {
+        type: String,
+        default: null
+    },
     price: {
         type: Number,
         required: true,

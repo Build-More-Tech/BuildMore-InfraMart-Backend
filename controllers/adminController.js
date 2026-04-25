@@ -6,7 +6,7 @@ const { uploadBuffer } = require('../services/cloudinary');
 // ==============================
 async function addproduct(req, res) {
     try {
-        const { productName, desc, category, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
+        const { productName, desc, category, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
 
         if (!productName || !category || !desc || price == null || stock == null) {
             return res.status(400).json({ message: "All fields are required" });
@@ -33,6 +33,7 @@ async function addproduct(req, res) {
             productName,
             desc,
             category,
+            subcategory: subcategory || null,
             price: Number(price),
             originalPrice: originalPrice ? Number(originalPrice) : undefined,
             materialSpecifications,
