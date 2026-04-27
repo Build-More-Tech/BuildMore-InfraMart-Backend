@@ -17,14 +17,13 @@ const categorySchema = new mongoose.Schema({
     subcategories: [subcategorySchema]
 }, { timestamps: true });
 
-categorySchema.pre('save', function (next) {
+categorySchema.pre('save', async function () {
     if (this.isModified('name') || !this.slug) {
         this.slug = toSlug(this.name);
     }
     this.subcategories.forEach(sub => {
         if (!sub.slug) sub.slug = toSlug(sub.name);
     });
-    next();
 });
 
 module.exports = mongoose.model('Category', categorySchema);

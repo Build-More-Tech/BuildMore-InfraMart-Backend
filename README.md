@@ -433,6 +433,10 @@ Paginated list responses include:
 │   ├── auth.js             # JWT sign/verify
 │   ├── cloudinary.js       # File upload/delete helpers
 │   └── isAuthorized.js     # isAuthorized, isAdmin middleware
+├── scripts/
+│   ├── seedCategories.js   # Upserts all 14 platform categories — run once per env
+│   ├── seed.js             # Seeds users, products, orders, RFQs, shipments, docs
+│   └── fixCategories.js    # Migration: normalises legacy category strings on products
 ├── .env.example            # Template — copy to .env.local to get started
 ├── .env.local              # Local dev environment variables
 ├── .env.production         # Production environment variables
