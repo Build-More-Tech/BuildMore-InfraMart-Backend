@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Counter = require('./CounterModel');
 
 const orderItemSchema = new mongoose.Schema({
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
@@ -33,11 +34,11 @@ const orderSchema = new mongoose.Schema({
     cancelReason: String
 }, { timestamps: true });
 
-// Auto-generate order number before save
+// Auto-generate order number before save (atomic — no race condition)
 orderSchema.pre('save', async function (next) {
     if (!this.orderNumber) {
-        const count = await mongoose.model('order').countDocuments();
-        this.orderNumber = `BM-${String(count + 1).padStart(6, '0')}`;
+        const seq = await Counter.nextSequence('order');
+        this.orderNumber = `BM-${String(seq).padStart(6, '0')}`;
     }
     next();
 });
