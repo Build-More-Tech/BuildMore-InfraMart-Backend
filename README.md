@@ -32,12 +32,18 @@ npm install
 
 ### Environment Setup
 
-Copy the appropriate env file template:
+Copy the example env file and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
 
 | File | Purpose |
 |---|---|
 | `.env.local` | Local development (localhost MongoDB) |
 | `.env.production` | Production (Atlas MongoDB, Render) |
+
+Environment variables are loaded via the `dotenv` package (`require('dotenv').config()`). Node's native `--env-file` flag is **not** used.
 
 Required variables:
 
@@ -86,6 +92,8 @@ Tokens are issued on login and expire after **30 days**.
 - `USER` — Standard user
 - `ADMIN` — Full platform access
 
+**CORS:** Cross-origin requests are restricted to the origin defined in `FRONTEND_URL`. If you receive a CORS error during local development, ensure `FRONTEND_URL` in your `.env.local` matches your frontend's origin exactly (e.g. `http://localhost:3000`).
+
 ---
 
 ## API Reference
@@ -108,13 +116,34 @@ Tokens are issued on login and expire after **30 days**.
 
 ---
 
+### Category Routes — `/api/categories`
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/` | No | List all categories (each includes its subcategories array) |
+| GET | `/:id` | No | Get a single category by ID |
+
+---
+
+### Admin — Category Management — `/api/admin`
+
+> Requires `ADMIN` role.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/categories` | Admin | Create a category (optional `image` file upload) |
+| PUT | `/categories/:id` | Admin | Update name, description, or image |
+| DELETE | `/categories/:id` | Admin | Delete a category (blocked if products are linked) |
+| POST | `/categories/:id/subcategories` | Admin | Add a subcategory |
+| DELETE | `/categories/:id/subcategories/:subId` | Admin | Remove a subcategory |
+
+---
+
 ### Product Routes — `/api/products`
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/` | No | List all products (supports `search`, `category`, `subcategory`, `page`, `limit` query params) |
-| GET | `/categories/all` | No | Get all available categories |
-| GET | `/categories/subcategories?category=<name>` | No | Get subcategories for a given category |
+| GET | `/` | No | List all products (supports `search`, `categoryId`, `subcategory`, `page`, `limit` query params) |
 | GET | `/:id` | No | Get a single product by ID |
 
 ---
@@ -125,9 +154,9 @@ Tokens are issued on login and expire after **30 days**.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/products` | Admin | Add a new product (with image upload) |
+| POST | `/products` | Admin | Add a new product (with image upload; pass `categoryId`) |
 | GET | `/products` | Admin | List all products |
-| PUT | `/products/:id` | Admin | Update product details |
+| PUT | `/products/:id` | Admin | Update product details (use `categoryId` to change category) |
 | DELETE | `/products/:id` | Admin | Delete a product |
 | PATCH | `/products/:id/stock` | Admin | Update stock quantity |
 | PATCH | `/products/:id/availability` | Admin | Toggle product availability |
@@ -226,6 +255,15 @@ Manage technical specification files linked to products.
 
 ## Data Models
 
+### Category
+| Field | Type | Notes |
+|---|---|---|
+| name | String | Required, unique |
+| slug | String | Auto-generated from name (e.g. `cement-concrete`) |
+| description | String | Optional |
+| image | String | Cloudinary URL, optional |
+| subcategories | Array | `[{ name, slug }]` — managed via admin subcategory endpoints |
+
 ### User
 | Field | Type | Notes |
 |---|---|---|
@@ -241,8 +279,8 @@ Manage technical specification files linked to products.
 |---|---|---|
 | productName | String | Required |
 | desc | String | Max 2000 chars |
-| category | String | Required — leaf category (e.g., `Cement & Concrete`) |
-| subcategory | String | Optional — subcategory within leaf (e.g., `AAC Blocks`) |
+| category | ObjectId | Required — ref: Category |
+| subcategory | String | Optional — must match a subcategory name defined in the linked Category |
 | price | Number | Required |
 | originalPrice | Number | Pre-discount price |
 | productImages | [String] | Cloudinary URLs |
@@ -321,12 +359,48 @@ Manage technical specification files linked to products.
 
 ---
 
+## Standard Response Format
+
+All endpoints return JSON in the following shape:
+
+```json
+// Success
+{
+  "success": true,
+  "message": "...",
+  "data": { }
+}
+
+// Error
+{
+  "success": false,
+  "error": "Invalid token"
+}
+```
+
+Paginated list responses include:
+
+```json
+{
+  "success": true,
+  "total": 100,
+  "page": 1,
+  "limit": 10,
+  "data": [ ]
+}
+```
+
+---
+
 ## Known Gaps / Missing Features
 
 | Area | Gap | Notes |
 |---|---|---|
+| Orders | No payment gateway | Orders are placed as COD (Cash on Delivery) or invoice-based. No Stripe/Razorpay integration. |
 | Orders | No invoice/receipt generation | No PDF or downloadable receipt for placed orders. |
 | Shipment | Shipment not auto-linked on order confirm | Shipments are created manually by admin. No auto-creation when an order is confirmed. |
+| Testing | No test suite | No unit or integration tests. `npm test` is not configured. |
+| API Docs | No Postman collection or Swagger/OpenAPI spec | API is documented only in this README. |
 
 ---
 
@@ -338,6 +412,7 @@ Manage technical specification files linked to products.
 │   ├── userRoutes.js
 │   ├── adminRoutes.js
 │   ├── productRoutes.js
+│   ├── categoryRoutes.js
 │   ├── orderRoutes.js
 │   ├── rfqRoutes.js
 │   ├── shipmentRoutes.js
@@ -346,16 +421,19 @@ Manage technical specification files linked to products.
 ├── controllers/            # Business logic for each route module
 ├── models/
 │   ├── userModel.js
+│   ├── CategoryModel.js
 │   ├── ProductModel.js
 │   ├── OrderModel.js
 │   ├── RFQModel.js
 │   ├── ShipmentModel.js
 │   ├── ComplianceDocModel.js
-│   └── SpecSheetModel.js
+│   ├── SpecSheetModel.js
+│   └── CounterModel.js         # Auto-increment counters for order/RFQ numbers
 ├── services/
 │   ├── auth.js             # JWT sign/verify
 │   ├── cloudinary.js       # File upload/delete helpers
 │   └── isAuthorized.js     # isAuthorized, isAdmin middleware
+├── .env.example            # Template — copy to .env.local to get started
 ├── .env.local              # Local dev environment variables
 ├── .env.production         # Production environment variables
 └── package.json

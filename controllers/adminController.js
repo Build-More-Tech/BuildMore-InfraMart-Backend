@@ -1,4 +1,5 @@
 const Products = require('../models/ProductModel');
+const Category = require('../models/CategoryModel');
 const { uploadBuffer, deleteImage, extractPublicId } = require('../services/cloudinary');
 
 // ==============================
@@ -6,10 +7,15 @@ const { uploadBuffer, deleteImage, extractPublicId } = require('../services/clou
 // ==============================
 async function addproduct(req, res) {
     try {
-        const { productName, desc, category, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
+        const { productName, desc, categoryId, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
 
-        if (!productName || !category || !desc || price == null || stock == null) {
+        if (!productName || !categoryId || !desc || price == null || stock == null) {
             return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const categoryExists = await Category.findById(categoryId);
+        if (!categoryExists) {
+            return res.status(404).json({ message: "Category not found" });
         }
 
         if (isNaN(price) || Number(price) <= 0) {
@@ -32,7 +38,7 @@ async function addproduct(req, res) {
         const product = await Products.create({
             productName,
             desc,
-            category,
+            category: categoryId,
             subcategory: subcategory || null,
             price: Number(price),
             originalPrice: originalPrice ? Number(originalPrice) : undefined,
@@ -60,7 +66,7 @@ async function addproduct(req, res) {
 // ==============================
 async function getAllProducts(req, res) {
     try {
-        const products = await Products.find().sort({ createdAt: -1 });
+        const products = await Products.find().populate('category', 'name slug').sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
@@ -77,13 +83,19 @@ async function getAllProducts(req, res) {
 // ==============================
 async function updateProduct(req, res) {
     try {
-        const { productName, desc, category, subcategory, price, originalPrice,
+        const { productName, desc, categoryId, subcategory, price, originalPrice,
             materialSpecifications, stock, tier, bulkInfo } = req.body;
 
         const updates = {};
         if (productName !== undefined) updates.productName = productName;
         if (desc !== undefined) updates.desc = desc;
-        if (category !== undefined) updates.category = category;
+        if (categoryId !== undefined) {
+            const categoryExists = await Category.findById(categoryId);
+            if (!categoryExists) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            updates.category = categoryId;
+        }
         if (subcategory !== undefined) updates.subcategory = subcategory;
         if (price !== undefined) updates.price = Number(price);
         if (originalPrice !== undefined) updates.originalPrice = Number(originalPrice);

@@ -11,7 +11,8 @@ const productSchema = new mongoose.Schema({
         maxlength: [2000, 'Description too long']
     },
     category: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
         required: true
     },
     subcategory: {

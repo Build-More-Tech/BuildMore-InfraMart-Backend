@@ -9,6 +9,7 @@ require('dotenv').config({
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const rfqRoutes = require('./routes/rfqRoutes');
 const shipmentRoutes = require('./routes/shipmentRoutes');
@@ -54,7 +55,8 @@ app.use(express.urlencoded({ extended: true }));
 // ==============================
 app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes);     // 🌐 Public product APIs
-app.use('/api/admin', adminRoutes);          // 🔐 Admin product APIs
+app.use('/api/categories', categoryRoutes);  // 🗂️ Public category APIs
+app.use('/api/admin', adminRoutes);          // 🔐 Admin APIs
 app.use('/api/orders', orderRoutes);         // 🛒 Order management
 app.use('/api/rfqs', rfqRoutes);             // 📋 RFQ system
 app.use('/api/shipments', shipmentRoutes);   // 📦 Logistics/shipment tracking

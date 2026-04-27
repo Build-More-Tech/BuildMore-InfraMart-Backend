@@ -5,20 +5,20 @@ const Products = require('../models/ProductModel');
 // ==============================
 async function getProducts(req, res) {
     try {
-        const { search, category, subcategory, page = 1, limit = 20 } = req.query;
+        const { search, categoryId, subcategory, page = 1, limit = 20 } = req.query;
 
         const filter = {};
 
         if (search) {
             filter.$text = { $search: search };
         }
-        if (category) filter.category = category;
+        if (categoryId) filter.category = categoryId;
         if (subcategory) filter.subcategory = subcategory;
 
         const skip = (Number(page) - 1) * Number(limit);
 
         const [products, total] = await Promise.all([
-            Products.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+            Products.find(filter).populate('category', 'name slug').sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
             Products.countDocuments(filter)
         ]);
 
@@ -44,7 +44,7 @@ async function getProductById(req, res) {
     try {
         const { id } = req.params;
 
-        const product = await Products.findById(id);
+        const product = await Products.findById(id).populate('category', 'name slug');
 
         if (!product) {
             return res.status(404).json({
@@ -64,51 +64,7 @@ async function getProductById(req, res) {
     }
 }
 
-// ==============================
-// 📂 GET CATEGORIES
-// ==============================
-async function getCategories(req, res) {
-    try {
-        const categories = await Products.distinct("category");
-
-        return res.status(200).json({
-            success: true,
-            categories
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}
-
-// ==============================
-// 📂 GET SUBCATEGORIES BY CATEGORY
-// ==============================
-async function getSubcategories(req, res) {
-    try {
-        const { category } = req.query;
-
-        if (!category) {
-            return res.status(400).json({ success: false, message: "category query param is required" });
-        }
-
-        const subcategories = await Products.distinct("subcategory", { category, subcategory: { $ne: null } });
-
-        return res.status(200).json({
-            success: true,
-            subcategories
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}
-
 module.exports = {
     getProducts,
-    getProductById,
-    getCategories,
-    getSubcategories
+    getProductById
 };
