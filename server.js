@@ -43,7 +43,13 @@ mongoose.connect(MONGO_URI)
 // 🔧 MIDDLEWARE
 // ==============================
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+    origin: [
+        process.env.ALLOWED_ORIGIN,
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'https://buildmore-frontend.vercel.app'
+    ].filter(Boolean),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
