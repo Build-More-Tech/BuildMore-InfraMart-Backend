@@ -17,16 +17,13 @@ function isAuthorized(req, res, next) {
 }
 
 function isAdmin(req, res, next) {
-    const role = req.user.role;
-
-    // ✅ handle case-insensitive check
-    if (!role || role.toLowerCase() !== 'admin') {
-        return res.status(403).json({
-            err: "Not Authorized",
-            message: "No admin access"
-        });
+    if (!req.user) {
+        return res.status(401).json({ err: "Not Authorized", message: "Authentication required" });
     }
-
+    const role = req.user.role;
+    if (!role || role.toLowerCase() !== 'admin') {
+        return res.status(403).json({ err: "Not Authorized", message: "No admin access" });
+    }
     next();
 }
 

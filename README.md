@@ -32,12 +32,18 @@ npm install
 
 ### Environment Setup
 
-Copy the appropriate env file template:
+Copy the example env file and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
 
 | File | Purpose |
 |---|---|
 | `.env.local` | Local development (localhost MongoDB) |
 | `.env.production` | Production (Atlas MongoDB, Render) |
+
+Environment variables are loaded via the `dotenv` package (`require('dotenv').config()`). Node's native `--env-file` flag is **not** used.
 
 Required variables:
 
@@ -86,17 +92,22 @@ Tokens are issued on login and expire after **30 days**.
 - `USER` — Standard user
 - `ADMIN` — Full platform access
 
+**CORS:** Cross-origin requests are restricted to the origin defined in `FRONTEND_URL`. If you receive a CORS error during local development, ensure `FRONTEND_URL` in your `.env.local` matches your frontend's origin exactly (e.g. `http://localhost:3000`).
+
 ---
 
 ## API Reference
 
 ### User Routes — `/api/user`
 
+> Auth endpoints are rate-limited to **10 requests per 15 minutes**.
+
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/signup` | No | Register a new user |
 | POST | `/login` | No | Login and receive JWT token |
-| POST | `/forgetpassword` | No | Reset password |
+| POST | `/requestreset` | No | Request a password reset (sends OTP/reset code) |
+| POST | `/forgetpassword` | No | Confirm reset — submit new password with reset code |
 | GET | `/profile` | Yes | Get logged-in user's profile |
 | PUT | `/profile` | Yes | Update name or phone |
 | POST | `/address` | Yes | Add a new address |
@@ -105,12 +116,34 @@ Tokens are issued on login and expire after **30 days**.
 
 ---
 
+### Category Routes — `/api/categories`
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/` | No | List all categories (each includes its subcategories array) |
+| GET | `/:id` | No | Get a single category by ID |
+
+---
+
+### Admin — Category Management — `/api/admin`
+
+> Requires `ADMIN` role.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/categories` | Admin | Create a category (optional `image` file upload) |
+| PUT | `/categories/:id` | Admin | Update name, description, or image |
+| DELETE | `/categories/:id` | Admin | Delete a category (blocked if products are linked) |
+| POST | `/categories/:id/subcategories` | Admin | Add a subcategory |
+| DELETE | `/categories/:id/subcategories/:subId` | Admin | Remove a subcategory |
+
+---
+
 ### Product Routes — `/api/products`
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/` | No | List all products (supports `search`, `category`, `subcategory` query params) |
-| GET | `/categories/all` | No | Get all available categories |
+| GET | `/` | No | List all products (supports `search`, `categoryId`, `subcategory`, `page`, `limit` query params) |
 | GET | `/:id` | No | Get a single product by ID |
 
 ---
@@ -121,9 +154,9 @@ Tokens are issued on login and expire after **30 days**.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/products` | Admin | Add a new product (with image upload) |
+| POST | `/products` | Admin | Add a new product (with image upload; pass `categoryId`) |
 | GET | `/products` | Admin | List all products |
-| PUT | `/products/:id` | Admin | Update product details |
+| PUT | `/products/:id` | Admin | Update product details (use `categoryId` to change category) |
 | DELETE | `/products/:id` | Admin | Delete a product |
 | PATCH | `/products/:id/stock` | Admin | Update stock quantity |
 | PATCH | `/products/:id/availability` | Admin | Toggle product availability |
@@ -159,6 +192,7 @@ Request for Quotation workflow.
 | POST | `/:id/items` | User | Add an item to a draft RFQ |
 | DELETE | `/:id/items/:itemId` | User | Remove an item from a draft RFQ |
 | PATCH | `/:id/submit` | User | Submit RFQ for admin review |
+| PATCH | `/:id/respond` | User | Accept or reject a QUOTED RFQ (`action: "ACCEPT" \| "REJECT"`) |
 | GET | `/admin/all` | Admin | List all RFQs (paginated) |
 | PATCH | `/admin/:id` | Admin | Update RFQ status and quoted prices |
 
@@ -195,6 +229,8 @@ Manage regulatory compliance documents per user/product.
 | GET | `/:id` | User | Get a single compliance document |
 | DELETE | `/:id` | User | Delete a compliance document |
 | GET | `/admin/all` | Admin | List all compliance documents (paginated) |
+| PATCH | `/admin/:id` | Admin | Update doc details (`adminNotes`, `issuedBy`, `issuedAt`, `expiresAt`) |
+| DELETE | `/admin/:id` | Admin | Delete any compliance document |
 
 **Document Types:** `ISO`, `CE`, `RoHS`, `REACH`, `SDS`, `AUDIT`, `OTHER`
 
@@ -219,6 +255,15 @@ Manage technical specification files linked to products.
 
 ## Data Models
 
+### Category
+| Field | Type | Notes |
+|---|---|---|
+| name | String | Required, unique |
+| slug | String | Auto-generated from name (e.g. `cement-concrete`) |
+| description | String | Optional |
+| image | String | Cloudinary URL, optional |
+| subcategories | Array | `[{ name, slug }]` — managed via admin subcategory endpoints |
+
 ### User
 | Field | Type | Notes |
 |---|---|---|
@@ -234,8 +279,8 @@ Manage technical specification files linked to products.
 |---|---|---|
 | productName | String | Required |
 | desc | String | Max 2000 chars |
-| category | String | Required — leaf category (e.g., `Cement & Concrete`) |
-| subcategory | String | Optional — subcategory within leaf (e.g., `AAC Blocks`) |
+| category | ObjectId | Required — ref: Category |
+| subcategory | String | Optional — must match a subcategory name defined in the linked Category |
 | price | Number | Required |
 | originalPrice | Number | Pre-discount price |
 | productImages | [String] | Cloudinary URLs |
@@ -257,6 +302,7 @@ Manage technical specification files linked to products.
 | status | String | See statuses above |
 | shippingAddress | Object | Embedded |
 | notes | String | |
+| cancelledAt | Date | Populated on cancellation |
 | cancelReason | String | Populated on cancellation |
 
 ### RFQ
@@ -296,6 +342,8 @@ Manage technical specification files linked to products.
 | issuedBy | String | |
 | issuedAt / expiresAt | Date | |
 | status | String | Auto-computed: ACTIVE, EXPIRING_SOON, EXPIRED |
+| notes | String | User notes |
+| adminNotes | String | Admin notes |
 
 ### Spec Sheet
 | Field | Type | Notes |
@@ -311,6 +359,51 @@ Manage technical specification files linked to products.
 
 ---
 
+## Standard Response Format
+
+All endpoints return JSON in the following shape:
+
+```json
+// Success
+{
+  "success": true,
+  "message": "...",
+  "data": { }
+}
+
+// Error
+{
+  "success": false,
+  "error": "Invalid token"
+}
+```
+
+Paginated list responses include:
+
+```json
+{
+  "success": true,
+  "total": 100,
+  "page": 1,
+  "limit": 10,
+  "data": [ ]
+}
+```
+
+---
+
+## Known Gaps / Missing Features
+
+| Area | Gap | Notes |
+|---|---|---|
+| Orders | No payment gateway | Orders are placed as COD (Cash on Delivery) or invoice-based. No Stripe/Razorpay integration. |
+| Orders | No invoice/receipt generation | No PDF or downloadable receipt for placed orders. |
+| Shipment | Shipment not auto-linked on order confirm | Shipments are created manually by admin. No auto-creation when an order is confirmed. |
+| Testing | No test suite | No unit or integration tests. `npm test` is not configured. |
+| API Docs | No Postman collection or Swagger/OpenAPI spec | API is documented only in this README. |
+
+---
+
 ## Project Structure
 
 ```
@@ -319,6 +412,7 @@ Manage technical specification files linked to products.
 │   ├── userRoutes.js
 │   ├── adminRoutes.js
 │   ├── productRoutes.js
+│   ├── categoryRoutes.js
 │   ├── orderRoutes.js
 │   ├── rfqRoutes.js
 │   ├── shipmentRoutes.js
@@ -327,16 +421,19 @@ Manage technical specification files linked to products.
 ├── controllers/            # Business logic for each route module
 ├── models/
 │   ├── userModel.js
+│   ├── CategoryModel.js
 │   ├── ProductModel.js
 │   ├── OrderModel.js
 │   ├── RFQModel.js
 │   ├── ShipmentModel.js
 │   ├── ComplianceDocModel.js
-│   └── SpecSheetModel.js
+│   ├── SpecSheetModel.js
+│   └── CounterModel.js         # Auto-increment counters for order/RFQ numbers
 ├── services/
 │   ├── auth.js             # JWT sign/verify
 │   ├── cloudinary.js       # File upload/delete helpers
 │   └── isAuthorized.js     # isAuthorized, isAdmin middleware
+├── .env.example            # Template — copy to .env.local to get started
 ├── .env.local              # Local dev environment variables
 ├── .env.production         # Production environment variables
 └── package.json

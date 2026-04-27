@@ -11,6 +11,16 @@ const {
 } = require('../controllers/orderController');
 
 // ==============================
+// 🔐 ADMIN ORDER ROUTES (must be before /:id)
+// ==============================
+
+// GET /api/orders/admin/all — get all orders (admin)
+router.get('/admin/all', isAuthorized, isAdmin, adminGetAllOrders);
+
+// PATCH /api/orders/admin/:id/status — update order status (admin)
+router.patch('/admin/:id/status', isAuthorized, isAdmin, adminUpdateOrderStatus);
+
+// ==============================
 // 🛒 USER ORDER ROUTES
 // ==============================
 
@@ -25,15 +35,5 @@ router.get('/:id', isAuthorized, getOrderById);
 
 // PATCH /api/orders/:id/cancel — cancel an order
 router.patch('/:id/cancel', isAuthorized, cancelOrder);
-
-// ==============================
-// 🔐 ADMIN ORDER ROUTES
-// ==============================
-
-// GET /api/orders/admin/all — get all orders (admin)
-router.get('/admin/all', isAuthorized, isAdmin, adminGetAllOrders);
-
-// PATCH /api/orders/admin/:id/status — update order status (admin)
-router.patch('/admin/:id/status', isAuthorized, isAdmin, adminUpdateOrderStatus);
 
 module.exports = router;

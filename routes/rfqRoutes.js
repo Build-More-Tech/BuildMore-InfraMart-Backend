@@ -8,6 +8,7 @@ const {
     addItem,
     removeItem,
     submitRFQ,
+    respondToRFQ,
     adminGetAllRFQs,
     adminUpdateRFQ
 } = require('../controllers/rfqController');
@@ -33,6 +34,9 @@ router.delete('/:id/items/:itemId', isAuthorized, removeItem);
 
 // PATCH /api/rfqs/:id/submit — submit RFQ for review
 router.patch('/:id/submit', isAuthorized, submitRFQ);
+
+// PATCH /api/rfqs/:id/respond — accept or reject a QUOTED RFQ
+router.patch('/:id/respond', isAuthorized, respondToRFQ);
 
 // ==============================
 // 🔐 ADMIN RFQ ROUTES

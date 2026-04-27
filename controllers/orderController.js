@@ -18,16 +18,24 @@ async function createOrder(req, res) {
             return res.status(400).json({ success: false, message: 'Complete shipping address is required' });
         }
 
-        // Validate products and build order items
-        const orderItems = [];
-        let totalAmount = 0;
-
+        // Validate item fields
         for (const item of items) {
             if (!item.product || !item.quantity || item.quantity < 1) {
                 return res.status(400).json({ success: false, message: 'Invalid item data' });
             }
+        }
 
-            const product = await Product.findById(item.product);
+        // Fetch all products in one query (fixes N+1)
+        const productIds = items.map(i => i.product);
+        const products = await Product.find({ _id: { $in: productIds } });
+        const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
+        // Validate all products and build order items
+        const orderItems = [];
+        let totalAmount = 0;
+
+        for (const item of items) {
+            const product = productMap.get(item.product.toString());
             if (!product) {
                 return res.status(404).json({ success: false, message: `Product ${item.product} not found` });
             }
@@ -47,9 +55,22 @@ async function createOrder(req, res) {
             totalAmount += product.price * item.quantity;
         }
 
-        // Deduct stock
+        // Atomically deduct stock — rolls back previous deductions if any item fails
+        const deducted = [];
         for (const item of orderItems) {
-            await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
+            const updated = await Product.findOneAndUpdate(
+                { _id: item.product, stock: { $gte: item.quantity } },
+                { $inc: { stock: -item.quantity } }
+            );
+            if (!updated) {
+                // Roll back already-deducted stock
+                await Promise.all(
+                    deducted.map(d => Product.findByIdAndUpdate(d.product, { $inc: { stock: d.quantity } }))
+                );
+                const name = productMap.get(item.product.toString())?.productName;
+                return res.status(400).json({ success: false, message: `Insufficient stock for "${name}". Please try again.` });
+            }
+            deducted.push(item);
         }
 
         const order = await Order.create({

@@ -5,30 +5,29 @@ const Products = require('../models/ProductModel');
 // ==============================
 async function getProducts(req, res) {
     try {
-        const { search, category, subcategory } = req.query;
+        const { search, categoryId, subcategory, page = 1, limit = 20 } = req.query;
 
-        let filter = {};
+        const filter = {};
 
-        // 🔍 Search functionality
         if (search) {
-            filter.productName = { $regex: search, $options: 'i' };
+            filter.$text = { $search: search };
         }
+        if (categoryId) filter.category = categoryId;
+        if (subcategory) filter.subcategory = subcategory;
 
-        // 📂 Category filter
-        if (category) {
-            filter.category = category;
-        }
+        const skip = (Number(page) - 1) * Number(limit);
 
-        // 📂 Subcategory filter
-        if (subcategory) {
-            filter.subcategory = subcategory;
-        }
-
-        const products = await Products.find(filter).sort({ createdAt: -1 });
+        const [products, total] = await Promise.all([
+            Products.find(filter).populate('category', 'name slug').sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+            Products.countDocuments(filter)
+        ]);
 
         return res.status(200).json({
             success: true,
             count: products.length,
+            total,
+            page: Number(page),
+            totalPages: Math.ceil(total / Number(limit)),
             products
         });
 
@@ -45,7 +44,7 @@ async function getProductById(req, res) {
     try {
         const { id } = req.params;
 
-        const product = await Products.findById(id);
+        const product = await Products.findById(id).populate('category', 'name slug');
 
         if (!product) {
             return res.status(404).json({
@@ -65,26 +64,7 @@ async function getProductById(req, res) {
     }
 }
 
-// ==============================
-// 📂 GET CATEGORIES
-// ==============================
-async function getCategories(req, res) {
-    try {
-        const categories = await Products.distinct("category");
-
-        return res.status(200).json({
-            success: true,
-            categories
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
-    }
-}
-
 module.exports = {
     getProducts,
-    getProductById,
-    getCategories
+    getProductById
 };

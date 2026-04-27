@@ -11,7 +11,8 @@ const productSchema = new mongoose.Schema({
         maxlength: [2000, 'Description too long']
     },
     category: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Category',
         required: true
     },
     subcategory: {
@@ -63,5 +64,7 @@ const productSchema = new mongoose.Schema({
         default: 0
     }
 }, { timestamps: true })
+
+productSchema.index({ productName: 'text', category: 'text' });
 
 module.exports = mongoose.model('product', productSchema)

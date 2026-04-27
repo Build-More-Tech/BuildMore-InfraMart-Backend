@@ -1,14 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local';
-require('dotenv').config({ path: envFile });
+require('dotenv').config({
+    path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local'
+});
 
 // ✅ ROUTES
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const productRoutes = require('./routes/productRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const rfqRoutes = require('./routes/rfqRoutes');
 const shipmentRoutes = require('./routes/shipmentRoutes');
@@ -41,7 +42,11 @@ mongoose.connect(MONGO_URI)
 // ==============================
 // 🔧 MIDDLEWARE
 // ==============================
-app.use(cors());
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -50,12 +55,29 @@ app.use(express.urlencoded({ extended: true }));
 // ==============================
 app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes);     // 🌐 Public product APIs
-app.use('/api/admin', adminRoutes);          // 🔐 Admin product APIs
+app.use('/api/categories', categoryRoutes);  // 🗂️ Public category APIs
+app.use('/api/admin', adminRoutes);          // 🔐 Admin APIs
 app.use('/api/orders', orderRoutes);         // 🛒 Order management
 app.use('/api/rfqs', rfqRoutes);             // 📋 RFQ system
 app.use('/api/shipments', shipmentRoutes);   // 📦 Logistics/shipment tracking
 app.use('/api/compliance', complianceRoutes); // 📋 Compliance documents
 app.use('/api/specs', specsRoutes);          // 📄 Technical spec sheets
+
+// ==============================
+// 🔴 404 HANDLER
+// ==============================
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Route not found' });
+});
+
+// ==============================
+// 🔴 GLOBAL ERROR HANDLER
+// ==============================
+app.use((err, req, res, next) => {
+    console.error(err);
+    const status = err.status || err.statusCode || 500;
+    res.status(status).json({ success: false, message: err.message || 'Internal server error' });
+});
 
 // ==============================
 // 🟢 SERVER

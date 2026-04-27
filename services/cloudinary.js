@@ -53,4 +53,29 @@ function uploadRawFile(buffer, folder = 'buildmore-docs', filename = 'document')
     });
 }
 
-module.exports = { uploadBuffer, deleteImage, uploadRawFile };
+/**
+ * Extracts the Cloudinary public_id from a secure URL.
+ * e.g. https://res.cloudinary.com/cloud/image/upload/v123/folder/file.jpg → folder/file
+ */
+function extractPublicId(url) {
+    try {
+        const parts = url.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        if (uploadIndex === -1) return null;
+        let start = uploadIndex + 1;
+        if (/^v\d+$/.test(parts[start])) start++;
+        const withExt = parts.slice(start).join('/');
+        return withExt.replace(/\.[^/.]+$/, '');
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Deletes a raw (non-image) file from Cloudinary by its public_id.
+ */
+function deleteRawFile(publicId) {
+    return cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+}
+
+module.exports = { uploadBuffer, deleteImage, uploadRawFile, extractPublicId, deleteRawFile };

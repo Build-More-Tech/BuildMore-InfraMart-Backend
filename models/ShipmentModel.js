@@ -32,12 +32,11 @@ const shipmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate tracking number
-shipmentSchema.pre('save', async function (next) {
+shipmentSchema.pre('save', async function () {
     if (!this.trackingNumber) {
         const rand = Math.random().toString(36).substring(2, 10).toUpperCase();
         this.trackingNumber = `BM-TRK-${rand}`;
     }
-    next();
 });
 
 module.exports = mongoose.model('shipment', shipmentSchema);

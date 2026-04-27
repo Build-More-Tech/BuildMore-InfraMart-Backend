@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Counter = require('./CounterModel');
 
 const rfqItemSchema = new mongoose.Schema({
     product: { type: mongoose.Schema.Types.ObjectId, ref: 'product' },
@@ -24,17 +25,16 @@ const rfqSchema = new mongoose.Schema({
     expiresAt: Date
 }, { timestamps: true });
 
-// Auto-generate RFQ number
-rfqSchema.pre('save', async function (next) {
+// Auto-generate RFQ number (atomic — no race condition)
+rfqSchema.pre('save', async function () {
     if (!this.rfqNumber) {
-        const count = await mongoose.model('rfq').countDocuments();
-        this.rfqNumber = `RFQ-${String(count + 1).padStart(5, '0')}`;
+        const seq = await Counter.nextSequence('rfq');
+        this.rfqNumber = `RFQ-${String(seq).padStart(5, '0')}`;
     }
     // Recalculate estimated value
     this.totalEstimatedValue = this.items.reduce((sum, item) => {
         return sum + (item.targetPrice || 0) * item.quantity;
     }, 0);
-    next();
 });
 
 module.exports = mongoose.model('rfq', rfqSchema);

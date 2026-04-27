@@ -1,15 +1,21 @@
 const Products = require('../models/ProductModel');
-const { uploadBuffer } = require('../services/cloudinary');
+const Category = require('../models/CategoryModel');
+const { uploadBuffer, deleteImage, extractPublicId } = require('../services/cloudinary');
 
 // ==============================
 // ➕ ADD PRODUCT (ADMIN)
 // ==============================
 async function addproduct(req, res) {
     try {
-        const { productName, desc, category, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
+        const { productName, desc, categoryId, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
 
-        if (!productName || !category || !desc || price == null || stock == null) {
+        if (!productName || !categoryId || !desc || price == null || stock == null) {
             return res.status(400).json({ message: "All fields are required" });
+        }
+
+        const categoryExists = await Category.findById(categoryId);
+        if (!categoryExists) {
+            return res.status(404).json({ message: "Category not found" });
         }
 
         if (isNaN(price) || Number(price) <= 0) {
@@ -32,7 +38,7 @@ async function addproduct(req, res) {
         const product = await Products.create({
             productName,
             desc,
-            category,
+            category: categoryId,
             subcategory: subcategory || null,
             price: Number(price),
             originalPrice: originalPrice ? Number(originalPrice) : undefined,
@@ -60,7 +66,7 @@ async function addproduct(req, res) {
 // ==============================
 async function getAllProducts(req, res) {
     try {
-        const products = await Products.find().sort({ createdAt: -1 });
+        const products = await Products.find().populate('category', 'name slug').sort({ createdAt: -1 });
 
         return res.status(200).json({
             success: true,
@@ -77,9 +83,30 @@ async function getAllProducts(req, res) {
 // ==============================
 async function updateProduct(req, res) {
     try {
+        const { productName, desc, categoryId, subcategory, price, originalPrice,
+            materialSpecifications, stock, tier, bulkInfo } = req.body;
+
+        const updates = {};
+        if (productName !== undefined) updates.productName = productName;
+        if (desc !== undefined) updates.desc = desc;
+        if (categoryId !== undefined) {
+            const categoryExists = await Category.findById(categoryId);
+            if (!categoryExists) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            updates.category = categoryId;
+        }
+        if (subcategory !== undefined) updates.subcategory = subcategory;
+        if (price !== undefined) updates.price = Number(price);
+        if (originalPrice !== undefined) updates.originalPrice = Number(originalPrice);
+        if (materialSpecifications !== undefined) updates.materialSpecifications = materialSpecifications;
+        if (stock !== undefined) updates.stock = Number(stock);
+        if (tier !== undefined) updates.tier = tier;
+        if (bulkInfo !== undefined) updates.bulkInfo = bulkInfo;
+
         const product = await Products.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updates,
             { new: true, runValidators: true }
         );
 
@@ -87,10 +114,7 @@ async function updateProduct(req, res) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        return res.status(200).json({
-            success: true,
-            product
-        });
+        return res.status(200).json({ success: true, product });
 
     } catch (error) {
         return res.status(500).json({ message: "Internal server error" });
@@ -108,10 +132,17 @@ async function deleteProduct(req, res) {
             return res.status(404).json({ message: "Product not found" });
         }
 
-        return res.status(200).json({
-            success: true,
-            message: "Deleted successfully"
-        });
+        // Delete images from Cloudinary (non-blocking — don't fail the request)
+        if (product.productImages && product.productImages.length > 0) {
+            await Promise.allSettled(
+                product.productImages.map(url => {
+                    const publicId = extractPublicId(url);
+                    return publicId ? deleteImage(publicId) : Promise.resolve();
+                })
+            );
+        }
+
+        return res.status(200).json({ success: true, message: "Deleted successfully" });
 
     } catch (error) {
         return res.status(500).json({ message: "Internal server error" });

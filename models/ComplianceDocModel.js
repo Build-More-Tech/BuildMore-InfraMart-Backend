@@ -18,23 +18,25 @@ const complianceDocSchema = new mongoose.Schema({
         enum: ['ACTIVE', 'EXPIRING_SOON', 'EXPIRED'],
         default: 'ACTIVE'
     },
-    notes: String
+    notes: String,
+    adminNotes: String
 }, { timestamps: true });
 
-// Auto-compute status before save
-complianceDocSchema.pre('save', function (next) {
-    if (this.expiresAt) {
-        const now = new Date();
-        const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-        if (this.expiresAt < now) {
-            this.status = 'EXPIRED';
-        } else if ((this.expiresAt - now) < thirtyDays) {
-            this.status = 'EXPIRING_SOON';
-        } else {
-            this.status = 'ACTIVE';
-        }
+function computeStatus(doc) {
+    if (!doc.expiresAt) return;
+    const now = new Date();
+    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+    if (doc.expiresAt < now) {
+        doc.status = 'EXPIRED';
+    } else if ((doc.expiresAt - now) < thirtyDays) {
+        doc.status = 'EXPIRING_SOON';
+    } else {
+        doc.status = 'ACTIVE';
     }
-    next();
-});
+}
+
+// Compute on save AND on every read so status never goes stale
+complianceDocSchema.pre('save', function () { computeStatus(this); });
+complianceDocSchema.post('init', function () { computeStatus(this); });
 
 module.exports = mongoose.model('compliancedoc', complianceDocSchema);

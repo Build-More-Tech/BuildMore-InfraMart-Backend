@@ -2,9 +2,25 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
-const { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs } = require('../controllers/complianceController');
+const { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs, adminUpdateDoc, adminDeleteDoc } = require('../controllers/complianceController');
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024 } // 20 MB
+});
+
+// ==============================
+// 🔐 ADMIN COMPLIANCE ROUTES (must be before /:id)
+// ==============================
+
+// GET /api/compliance/admin/all
+router.get('/admin/all', isAuthorized, isAdmin, adminGetAllDocs);
+
+// PATCH /api/compliance/admin/:id — update doc (add notes, fix dates)
+router.patch('/admin/:id', isAuthorized, isAdmin, adminUpdateDoc);
+
+// DELETE /api/compliance/admin/:id — delete any doc
+router.delete('/admin/:id', isAuthorized, isAdmin, adminDeleteDoc);
 
 // ==============================
 // 📋 USER COMPLIANCE ROUTES
@@ -21,12 +37,5 @@ router.get('/:id', isAuthorized, getDocById);
 
 // DELETE /api/compliance/:id — delete doc
 router.delete('/:id', isAuthorized, deleteDoc);
-
-// ==============================
-// 🔐 ADMIN COMPLIANCE ROUTES
-// ==============================
-
-// GET /api/compliance/admin/all
-router.get('/admin/all', isAuthorized, isAdmin, adminGetAllDocs);
 
 module.exports = router;
