@@ -18,7 +18,8 @@ const complianceDocSchema = new mongoose.Schema({
         enum: ['ACTIVE', 'EXPIRING_SOON', 'EXPIRED'],
         default: 'ACTIVE'
     },
-    notes: String
+    notes: String,
+    adminNotes: String
 }, { timestamps: true });
 
 function computeStatus(doc) {

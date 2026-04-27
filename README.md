@@ -92,11 +92,14 @@ Tokens are issued on login and expire after **30 days**.
 
 ### User Routes — `/api/user`
 
+> Auth endpoints are rate-limited to **10 requests per 15 minutes**.
+
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | `/signup` | No | Register a new user |
 | POST | `/login` | No | Login and receive JWT token |
-| POST | `/forgetpassword` | No | Reset password |
+| POST | `/requestreset` | No | Request a password reset (sends OTP/reset code) |
+| POST | `/forgetpassword` | No | Confirm reset — submit new password with reset code |
 | GET | `/profile` | Yes | Get logged-in user's profile |
 | PUT | `/profile` | Yes | Update name or phone |
 | POST | `/address` | Yes | Add a new address |
@@ -109,8 +112,9 @@ Tokens are issued on login and expire after **30 days**.
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| GET | `/` | No | List all products (supports `search`, `category`, `subcategory` query params) |
+| GET | `/` | No | List all products (supports `search`, `category`, `subcategory`, `page`, `limit` query params) |
 | GET | `/categories/all` | No | Get all available categories |
+| GET | `/categories/subcategories?category=<name>` | No | Get subcategories for a given category |
 | GET | `/:id` | No | Get a single product by ID |
 
 ---
@@ -159,6 +163,7 @@ Request for Quotation workflow.
 | POST | `/:id/items` | User | Add an item to a draft RFQ |
 | DELETE | `/:id/items/:itemId` | User | Remove an item from a draft RFQ |
 | PATCH | `/:id/submit` | User | Submit RFQ for admin review |
+| PATCH | `/:id/respond` | User | Accept or reject a QUOTED RFQ (`action: "ACCEPT" \| "REJECT"`) |
 | GET | `/admin/all` | Admin | List all RFQs (paginated) |
 | PATCH | `/admin/:id` | Admin | Update RFQ status and quoted prices |
 
@@ -195,6 +200,8 @@ Manage regulatory compliance documents per user/product.
 | GET | `/:id` | User | Get a single compliance document |
 | DELETE | `/:id` | User | Delete a compliance document |
 | GET | `/admin/all` | Admin | List all compliance documents (paginated) |
+| PATCH | `/admin/:id` | Admin | Update doc details (`adminNotes`, `issuedBy`, `issuedAt`, `expiresAt`) |
+| DELETE | `/admin/:id` | Admin | Delete any compliance document |
 
 **Document Types:** `ISO`, `CE`, `RoHS`, `REACH`, `SDS`, `AUDIT`, `OTHER`
 
@@ -257,6 +264,7 @@ Manage technical specification files linked to products.
 | status | String | See statuses above |
 | shippingAddress | Object | Embedded |
 | notes | String | |
+| cancelledAt | Date | Populated on cancellation |
 | cancelReason | String | Populated on cancellation |
 
 ### RFQ
@@ -296,6 +304,8 @@ Manage technical specification files linked to products.
 | issuedBy | String | |
 | issuedAt / expiresAt | Date | |
 | status | String | Auto-computed: ACTIVE, EXPIRING_SOON, EXPIRED |
+| notes | String | User notes |
+| adminNotes | String | Admin notes |
 
 ### Spec Sheet
 | Field | Type | Notes |
@@ -308,6 +318,15 @@ Manage technical specification files linked to products.
 | version | String | Default: `1.0` |
 | uploadedBy | ObjectId | ref: User |
 | description | String | |
+
+---
+
+## Known Gaps / Missing Features
+
+| Area | Gap | Notes |
+|---|---|---|
+| Orders | No invoice/receipt generation | No PDF or downloadable receipt for placed orders. |
+| Shipment | Shipment not auto-linked on order confirm | Shipments are created manually by admin. No auto-creation when an order is confirmed. |
 
 ---
 

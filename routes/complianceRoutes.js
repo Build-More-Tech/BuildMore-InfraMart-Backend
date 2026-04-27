@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
-const { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs } = require('../controllers/complianceController');
+const { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs, adminUpdateDoc, adminDeleteDoc } = require('../controllers/complianceController');
 
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -15,6 +15,12 @@ const upload = multer({
 
 // GET /api/compliance/admin/all
 router.get('/admin/all', isAuthorized, isAdmin, adminGetAllDocs);
+
+// PATCH /api/compliance/admin/:id — update doc (add notes, fix dates)
+router.patch('/admin/:id', isAuthorized, isAdmin, adminUpdateDoc);
+
+// DELETE /api/compliance/admin/:id — delete any doc
+router.delete('/admin/:id', isAuthorized, isAdmin, adminDeleteDoc);
 
 // ==============================
 // 📋 USER COMPLIANCE ROUTES

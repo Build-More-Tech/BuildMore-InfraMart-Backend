@@ -82,8 +82,33 @@ async function getCategories(req, res) {
     }
 }
 
+// ==============================
+// 📂 GET SUBCATEGORIES BY CATEGORY
+// ==============================
+async function getSubcategories(req, res) {
+    try {
+        const { category } = req.query;
+
+        if (!category) {
+            return res.status(400).json({ success: false, message: "category query param is required" });
+        }
+
+        const subcategories = await Products.distinct("subcategory", { category, subcategory: { $ne: null } });
+
+        return res.status(200).json({
+            success: true,
+            subcategories
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
+
 module.exports = {
     getProducts,
     getProductById,
-    getCategories
+    getCategories,
+    getSubcategories
 };

@@ -126,6 +126,33 @@ async function submitRFQ(req, res) {
 }
 
 // ==============================
+// ✅ USER: RESPOND TO QUOTED RFQ (ACCEPT / REJECT)
+// ==============================
+async function respondToRFQ(req, res) {
+    try {
+        const { action } = req.body;
+
+        if (!['ACCEPT', 'REJECT'].includes(action)) {
+            return res.status(400).json({ success: false, message: 'action must be ACCEPT or REJECT' });
+        }
+
+        const rfq = await RFQ.findOne({ _id: req.params.id, user: req.user._id });
+        if (!rfq) return res.status(404).json({ success: false, message: 'RFQ not found' });
+
+        if (rfq.status !== 'QUOTED') {
+            return res.status(400).json({ success: false, message: 'Only QUOTED RFQs can be accepted or rejected' });
+        }
+
+        rfq.status = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED';
+        await rfq.save();
+        return res.status(200).json({ success: true, rfq });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// ==============================
 // 🔐 ADMIN: GET ALL RFQs
 // ==============================
 async function adminGetAllRFQs(req, res) {
@@ -182,6 +209,7 @@ module.exports = {
     addItem,
     removeItem,
     submitRFQ,
+    respondToRFQ,
     adminGetAllRFQs,
     adminUpdateRFQ
 };

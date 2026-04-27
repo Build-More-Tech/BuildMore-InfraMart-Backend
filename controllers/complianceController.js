@@ -118,4 +118,47 @@ async function adminGetAllDocs(req, res) {
     }
 }
 
-module.exports = { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs };
+// ==============================
+// 🔐 ADMIN: UPDATE COMPLIANCE DOC
+// ==============================
+async function adminUpdateDoc(req, res) {
+    try {
+        const { adminNotes, issuedBy, issuedAt, expiresAt } = req.body;
+
+        const doc = await ComplianceDoc.findById(req.params.id);
+        if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+
+        if (adminNotes !== undefined) doc.adminNotes = adminNotes;
+        if (issuedBy !== undefined) doc.issuedBy = issuedBy;
+        if (issuedAt !== undefined) doc.issuedAt = new Date(issuedAt);
+        if (expiresAt !== undefined) doc.expiresAt = new Date(expiresAt);
+
+        await doc.save();
+        return res.status(200).json({ success: true, doc });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// ==============================
+// 🔐 ADMIN: DELETE COMPLIANCE DOC
+// ==============================
+async function adminDeleteDoc(req, res) {
+    try {
+        const doc = await ComplianceDoc.findByIdAndDelete(req.params.id);
+        if (!doc) return res.status(404).json({ success: false, message: 'Document not found' });
+
+        if (doc.documentUrl) {
+            const publicId = extractPublicId(doc.documentUrl);
+            if (publicId) await deleteRawFile(publicId).catch(() => {});
+        }
+
+        return res.status(200).json({ success: true, message: 'Document deleted' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+module.exports = { uploadDoc, getUserDocs, getDocById, deleteDoc, adminGetAllDocs, adminUpdateDoc, adminDeleteDoc };
