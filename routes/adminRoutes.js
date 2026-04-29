@@ -44,7 +44,7 @@ router.post('/products', isAuthorized, isAdmin, upload.array('images', 5), addpr
 router.get('/products', isAuthorized, isAdmin, getAllProducts);
 
 // ✏️ Update product
-router.put('/products/:id', isAuthorized, isAdmin, updateProduct);
+router.put('/products/:id', isAuthorized, isAdmin, upload.array('images', 5), updateProduct);
 
 // ❌ Delete product
 router.delete('/products/:id', isAuthorized, isAdmin, deleteProduct);

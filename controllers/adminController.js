@@ -84,7 +84,7 @@ async function getAllProducts(req, res) {
 async function updateProduct(req, res) {
     try {
         const { productName, desc, categoryId, subcategory, price, originalPrice,
-            materialSpecifications, stock, tier, bulkInfo } = req.body;
+            materialSpecifications, stock, tier, bulkInfo, keepImages } = req.body;
 
         const updates = {};
         if (productName !== undefined) updates.productName = productName;
@@ -96,7 +96,7 @@ async function updateProduct(req, res) {
             }
             updates.category = categoryId;
         }
-        if (subcategory !== undefined) updates.subcategory = subcategory;
+        if (subcategory !== undefined) updates.subcategory = subcategory || null;
         if (price !== undefined) updates.price = Number(price);
         if (originalPrice !== undefined) updates.originalPrice = Number(originalPrice);
         if (materialSpecifications !== undefined) updates.materialSpecifications = materialSpecifications;
@@ -104,11 +104,43 @@ async function updateProduct(req, res) {
         if (tier !== undefined) updates.tier = tier;
         if (bulkInfo !== undefined) updates.bulkInfo = bulkInfo;
 
+        // Handle images: keep existing + upload new ones
+        if (keepImages !== undefined || (req.files && req.files.length > 0)) {
+            const currentProduct = await Products.findById(req.params.id);
+            if (!currentProduct) {
+                return res.status(404).json({ message: "Product not found" });
+            }
+
+            // keepImages may be a single string or an array
+            const keptUrls = keepImages
+                ? (Array.isArray(keepImages) ? keepImages : [keepImages])
+                : [];
+
+            // Delete Cloudinary images that were removed
+            const removedUrls = (currentProduct.productImages || []).filter(url => !keptUrls.includes(url));
+            await Promise.allSettled(
+                removedUrls.map(url => {
+                    const publicId = extractPublicId(url);
+                    return publicId ? deleteImage(publicId) : Promise.resolve();
+                })
+            );
+
+            // Upload new images
+            let newUrls = [];
+            if (req.files && req.files.length > 0) {
+                newUrls = await Promise.all(
+                    req.files.map(file => uploadBuffer(file.buffer, 'buildmore/products'))
+                );
+            }
+
+            updates.productImages = [...keptUrls, ...newUrls];
+        }
+
         const product = await Products.findByIdAndUpdate(
             req.params.id,
             updates,
             { new: true, runValidators: true }
-        );
+        ).populate('category', 'name slug');
 
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
@@ -117,6 +149,7 @@ async function updateProduct(req, res) {
         return res.status(200).json({ success: true, product });
 
     } catch (error) {
+        console.error(error);
         return res.status(500).json({ message: "Internal server error" });
     }
 }
