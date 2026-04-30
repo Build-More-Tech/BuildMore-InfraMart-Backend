@@ -18,7 +18,7 @@ async function getSpecsByProduct(req, res) {
         return res.status(200).json({ success: true, specs });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -41,7 +41,7 @@ async function getAllSpecs(req, res) {
         return res.status(200).json({ success: true, specs, total });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -80,7 +80,7 @@ async function uploadSpecSheet(req, res) {
         return res.status(201).json({ success: true, spec });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -100,7 +100,7 @@ async function deleteSpecSheet(req, res) {
         return res.status(200).json({ success: true, message: 'Spec sheet deleted' });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 

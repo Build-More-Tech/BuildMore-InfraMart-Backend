@@ -11,7 +11,7 @@ async function getUserShipments(req, res) {
         return res.status(200).json({ success: true, shipments });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -33,7 +33,7 @@ async function trackShipment(req, res) {
         return res.status(200).json({ success: true, shipment });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -64,7 +64,7 @@ async function adminCreateShipment(req, res) {
         return res.status(201).json({ success: true, shipment });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -94,7 +94,7 @@ async function adminUpdateShipment(req, res) {
         return res.status(200).json({ success: true, shipment });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -115,7 +115,7 @@ async function adminGetAllShipments(req, res) {
         return res.status(200).json({ success: true, shipments, total });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 

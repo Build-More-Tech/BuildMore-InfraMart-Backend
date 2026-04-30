@@ -1,12 +1,14 @@
 const Order = require('../models/OrderModel');
 const Product = require('../models/ProductModel');
+const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../services/emailService');
+const User = require('../models/userModel');
 
 // ==============================
 // ➕ CREATE ORDER (Checkout)
 // ==============================
 async function createOrder(req, res) {
     try {
-        const { items, shippingAddress, notes } = req.body;
+        const { items, shippingAddress, notes, paymentMethod } = req.body;
         const userId = req.user._id;
 
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -18,7 +20,6 @@ async function createOrder(req, res) {
             return res.status(400).json({ success: false, message: 'Complete shipping address is required' });
         }
 
-        // Validate item fields
         for (const item of items) {
             if (!item.product || !item.quantity || item.quantity < 1) {
                 return res.status(400).json({ success: false, message: 'Invalid item data' });
@@ -30,7 +31,6 @@ async function createOrder(req, res) {
         const products = await Product.find({ _id: { $in: productIds } });
         const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
-        // Validate all products and build order items
         const orderItems = [];
         let totalAmount = 0;
 
@@ -63,7 +63,6 @@ async function createOrder(req, res) {
                 { $inc: { stock: -item.quantity } }
             );
             if (!updated) {
-                // Roll back already-deducted stock
                 await Promise.all(
                     deducted.map(d => Product.findByIdAndUpdate(d.product, { $inc: { stock: d.quantity } }))
                 );
@@ -78,14 +77,20 @@ async function createOrder(req, res) {
             items: orderItems,
             totalAmount,
             shippingAddress,
+            paymentMethod: paymentMethod || 'COD',
             notes
         });
+
+        // Send confirmation email (non-blocking — don't fail the request)
+        User.findById(userId).then(user => {
+            if (user?.email) sendOrderConfirmation(user.email, order).catch(() => {});
+        }).catch(() => {});
 
         return res.status(201).json({ success: true, order });
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -98,7 +103,7 @@ async function getUserOrders(req, res) {
         return res.status(200).json({ success: true, orders });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -112,12 +117,12 @@ async function getOrderById(req, res) {
         return res.status(200).json({ success: true, order });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
 // ==============================
-// ❌ CANCEL ORDER
+// ❌ CANCEL ORDER (user)
 // ==============================
 async function cancelOrder(req, res) {
     try {
@@ -130,9 +135,11 @@ async function cancelOrder(req, res) {
         }
 
         // Restore stock
-        for (const item of order.items) {
-            await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } });
-        }
+        await Promise.all(
+            order.items.map(item =>
+                Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } })
+            )
+        );
 
         order.status = 'CANCELLED';
         order.cancelledAt = new Date();
@@ -142,7 +149,7 @@ async function cancelOrder(req, res) {
         return res.status(200).json({ success: true, order });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -153,16 +160,18 @@ async function adminGetAllOrders(req, res) {
     try {
         const { status, page = 1, limit = 20 } = req.query;
         const filter = status ? { status } : {};
-        const orders = await Order.find(filter)
-            .populate('user', 'name email phone')
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(Number(limit));
-        const total = await Order.countDocuments(filter);
+        const [orders, total] = await Promise.all([
+            Order.find(filter)
+                .populate('user', 'name email phone')
+                .sort({ createdAt: -1 })
+                .skip((Number(page) - 1) * Number(limit))
+                .limit(Number(limit)),
+            Order.countDocuments(filter)
+        ]);
         return res.status(200).json({ success: true, orders, total, page: Number(page) });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -176,12 +185,34 @@ async function adminUpdateOrderStatus(req, res) {
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ success: false, message: 'Invalid status' });
         }
-        const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+
+        const order = await Order.findById(req.params.id).populate('user', 'email');
         if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+        const prevStatus = order.status;
+
+        // If admin is cancelling an order that wasn't already cancelled, restore stock
+        if (status === 'CANCELLED' && prevStatus !== 'CANCELLED') {
+            await Promise.all(
+                order.items.map(item =>
+                    Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } })
+                )
+            );
+            order.cancelledAt = new Date();
+        }
+
+        order.status = status;
+        await order.save();
+
+        // Send status update email (non-blocking)
+        if (order.user?.email) {
+            sendOrderStatusUpdate(order.user.email, order).catch(() => {});
+        }
+
         return res.status(200).json({ success: true, order });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 

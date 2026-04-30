@@ -37,4 +37,8 @@ rfqSchema.pre('save', async function () {
     }, 0);
 });
 
+// Indexes for common query patterns
+rfqSchema.index({ user: 1, createdAt: -1 });
+rfqSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('rfq', rfqSchema);

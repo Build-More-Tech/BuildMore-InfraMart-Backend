@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const { setUser } = require('../services/auth');
+const { sendOTP } = require('../services/emailService');
 
 // ==============================
 // 🔐 LOGIN CONTROLLER
@@ -10,7 +11,6 @@ async function handleLogin(req, res) {
     try {
         const { email, password } = req.body;
 
-        // ✅ Validation
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -18,31 +18,23 @@ async function handleLogin(req, res) {
             });
         }
 
-        // Normalize email
         const normalizedEmail = email.toLowerCase().trim();
 
-        // Check user exists
+        // Use a single generic message to prevent user enumeration
+        const INVALID_MSG = "Invalid email or password";
+
         const user = await User.findOne({ email: normalizedEmail });
         if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid email"
-            });
+            return res.status(401).json({ success: false, message: INVALID_MSG });
         }
 
-        // Check password
-        const isMatch = bcrypt.compareSync(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid password"
-            });
+            return res.status(401).json({ success: false, message: INVALID_MSG });
         }
 
-        // Generate token
         const token = setUser(user);
 
-        // Success response
         return res.status(200).json({
             success: true,
             message: "Login successful",
@@ -51,10 +43,7 @@ async function handleLogin(req, res) {
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -65,7 +54,6 @@ async function handleSignup(req, res) {
     try {
         const { name, phone, email, password } = req.body;
 
-        // ✅ Validation (VERY IMPORTANT)
         if (!name || !email || !password || !phone) {
             return res.status(400).json({
                 success: false,
@@ -73,22 +61,15 @@ async function handleSignup(req, res) {
             });
         }
 
-        // Normalize email
         const normalizedEmail = email.toLowerCase().trim();
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
-            return res.status(400).json({
-                success: false,
-                message: "User already exists"
-            });
+            return res.status(400).json({ success: false, message: "User already exists" });
         }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user
         const user = await User.create({
             name,
             email: normalizedEmail,
@@ -96,10 +77,8 @@ async function handleSignup(req, res) {
             password: hashedPassword
         });
 
-        // Generate token
         const token = setUser(user);
 
-        // Success response
         return res.status(201).json({
             success: true,
             message: "Signup successful",
@@ -108,15 +87,12 @@ async function handleSignup(req, res) {
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
 // ==============================
-// 📧 REQUEST PASSWORD RESET (step 1)
+// 📧 REQUEST PASSWORD RESET (step 1) — sends OTP via email
 // ==============================
 async function handleRequestReset(req, res) {
     try {
@@ -131,10 +107,15 @@ async function handleRequestReset(req, res) {
         if (user) {
             const otp = crypto.randomInt(100000, 999999).toString();
             const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-            await User.findByIdAndUpdate(user._id, { resetToken: otp, resetTokenExpiry: expiry });
 
-            // TODO: send OTP via email (e.g. nodemailer / SendGrid)
-            // In development only — remove before production
+            // Store a SHA-256 hash of the OTP — never the raw value
+            const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+            await User.findByIdAndUpdate(user._id, { resetToken: otpHash, resetTokenExpiry: expiry });
+
+            // Send OTP via email (no-op if email not configured in env)
+            await sendOTP(normalizedEmail, otp);
+
+            // In development, log the OTP for easy testing
             if (process.env.NODE_ENV !== 'production') {
                 console.log(`[DEV] Reset OTP for ${normalizedEmail}: ${otp}`);
             }
@@ -176,7 +157,9 @@ async function handleForgetPassword(req, res) {
             return res.status(400).json({ success: false, message: 'Reset code has expired' });
         }
 
-        if (user.resetToken !== otp) {
+        // Compare against the stored hash
+        const otpHash = crypto.createHash('sha256').update(String(otp)).digest('hex');
+        if (user.resetToken !== otpHash) {
             return res.status(400).json({ success: false, message: 'Invalid reset code' });
         }
 
@@ -204,7 +187,7 @@ async function getProfile(req, res) {
         return res.status(200).json({ success: true, user });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -224,7 +207,7 @@ async function updateProfile(req, res) {
         return res.status(200).json({ success: true, user });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -248,7 +231,7 @@ async function addAddress(req, res) {
         return res.status(201).json({ success: true, address: user.address });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -280,7 +263,7 @@ async function updateAddress(req, res) {
         return res.status(200).json({ success: true, address: user.address });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -300,13 +283,10 @@ async function deleteAddress(req, res) {
         return res.status(200).json({ success: true, address: user.address });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
-// ==============================
-// EXPORTS
-// ==============================
 module.exports = {
     handleLogin,
     handleSignup,

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 const {
     createOrder,
@@ -10,30 +11,26 @@ const {
     adminUpdateOrderStatus
 } = require('../controllers/orderController');
 
+const orderLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, message: 'Too many requests, please try again later' }
+});
+
 // ==============================
 // 🔐 ADMIN ORDER ROUTES (must be before /:id)
 // ==============================
-
-// GET /api/orders/admin/all — get all orders (admin)
 router.get('/admin/all', isAuthorized, isAdmin, adminGetAllOrders);
-
-// PATCH /api/orders/admin/:id/status — update order status (admin)
 router.patch('/admin/:id/status', isAuthorized, isAdmin, adminUpdateOrderStatus);
 
 // ==============================
 // 🛒 USER ORDER ROUTES
 // ==============================
-
-// POST /api/orders — place an order
-router.post('/', isAuthorized, createOrder);
-
-// GET /api/orders — get current user's orders
+router.post('/', isAuthorized, orderLimiter, createOrder);
 router.get('/', isAuthorized, getUserOrders);
-
-// GET /api/orders/:id — get single order
 router.get('/:id', isAuthorized, getOrderById);
-
-// PATCH /api/orders/:id/cancel — cancel an order
 router.patch('/:id/cancel', isAuthorized, cancelOrder);
 
 module.exports = router;

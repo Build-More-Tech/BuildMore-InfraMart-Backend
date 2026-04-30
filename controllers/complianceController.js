@@ -33,7 +33,7 @@ async function uploadDoc(req, res) {
         return res.status(201).json({ success: true, doc });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -54,7 +54,7 @@ async function getUserDocs(req, res) {
         return res.status(200).json({ success: true, docs });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -69,7 +69,7 @@ async function getDocById(req, res) {
         return res.status(200).json({ success: true, doc });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -89,7 +89,7 @@ async function deleteDoc(req, res) {
         return res.status(200).json({ success: true, message: 'Document deleted' });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -114,7 +114,7 @@ async function adminGetAllDocs(req, res) {
         return res.status(200).json({ success: true, docs, total });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -137,7 +137,7 @@ async function adminUpdateDoc(req, res) {
         return res.status(200).json({ success: true, doc });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -157,7 +157,7 @@ async function adminDeleteDoc(req, res) {
         return res.status(200).json({ success: true, message: 'Document deleted' });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 

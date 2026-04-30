@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const mongoSanitize = require('express-mongo-sanitize');
 require('dotenv').config({
     path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local'
 });
@@ -42,6 +45,8 @@ mongoose.connect(MONGO_URI)
 // ==============================
 // 🔧 MIDDLEWARE
 // ==============================
+app.use(helmet());
+
 app.use(cors({
     origin: [
         process.env.ALLOWED_ORIGIN,
@@ -53,8 +58,14 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Strip $ and . from user-supplied keys to prevent MongoDB operator injection
+app.use(mongoSanitize());
 
 // ==============================
 // 🚀 ROUTES

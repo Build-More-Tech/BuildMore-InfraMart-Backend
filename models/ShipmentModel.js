@@ -39,4 +39,9 @@ shipmentSchema.pre('save', async function () {
     }
 });
 
+// Indexes for common query patterns
+shipmentSchema.index({ user: 1, createdAt: -1 });
+shipmentSchema.index({ status: 1, createdAt: -1 });
+shipmentSchema.index({ trackingNumber: 1 });
+
 module.exports = mongoose.model('shipment', shipmentSchema);

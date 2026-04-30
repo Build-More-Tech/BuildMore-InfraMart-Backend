@@ -15,7 +15,7 @@ async function createRFQ(req, res) {
         return res.status(201).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -31,7 +31,7 @@ async function getUserRFQs(req, res) {
         return res.status(200).json({ success: true, rfqs });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -45,7 +45,7 @@ async function getRFQById(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -78,7 +78,7 @@ async function addItem(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -98,7 +98,7 @@ async function removeItem(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -121,7 +121,7 @@ async function submitRFQ(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -148,7 +148,7 @@ async function respondToRFQ(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -168,7 +168,7 @@ async function adminGetAllRFQs(req, res) {
         return res.status(200).json({ success: true, rfqs, total });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 
@@ -198,7 +198,7 @@ async function adminUpdateRFQ(req, res) {
         return res.status(200).json({ success: true, rfq });
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 }
 

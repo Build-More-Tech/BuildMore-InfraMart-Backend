@@ -10,27 +10,26 @@ async function addproduct(req, res) {
         const { productName, desc, categoryId, subcategory, price, materialSpecifications, stock, originalPrice, tier, bulkInfo } = req.body;
 
         if (!productName || !categoryId || !desc || price == null || stock == null) {
-            return res.status(400).json({ message: "All fields are required" });
+            return res.status(400).json({ success: false, message: "All fields are required" });
         }
 
         const categoryExists = await Category.findById(categoryId);
         if (!categoryExists) {
-            return res.status(404).json({ message: "Category not found" });
+            return res.status(404).json({ success: false, message: "Category not found" });
         }
 
         if (isNaN(price) || Number(price) <= 0) {
-            return res.status(400).json({ message: "Invalid price" });
+            return res.status(400).json({ success: false, message: "Invalid price" });
         }
 
         if (isNaN(stock) || Number(stock) < 0) {
-            return res.status(400).json({ message: "Invalid stock" });
+            return res.status(400).json({ success: false, message: "Invalid stock" });
         }
 
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ message: "Product images required" });
+            return res.status(400).json({ success: false, message: "Product images required" });
         }
 
-        // Upload each image to Cloudinary and collect secure URLs
         const imageUrls = await Promise.all(
             req.files.map(file => uploadBuffer(file.buffer, 'buildmore/products'))
         );
@@ -57,24 +56,38 @@ async function addproduct(req, res) {
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
 // ==============================
-// 📦 ADMIN GET ALL PRODUCTS
+// 📦 ADMIN GET ALL PRODUCTS (paginated)
 // ==============================
 async function getAllProducts(req, res) {
     try {
-        const products = await Products.find().populate('category', 'name slug').sort({ createdAt: -1 });
+        const { page = 1, limit = 50, search } = req.query;
+        const filter = search ? { $text: { $search: search } } : {};
+
+        const [products, total] = await Promise.all([
+            Products.find(filter)
+                .populate('category', 'name slug')
+                .sort({ createdAt: -1 })
+                .skip((Number(page) - 1) * Number(limit))
+                .limit(Number(limit)),
+            Products.countDocuments(filter)
+        ]);
 
         return res.status(200).json({
             success: true,
-            products
+            products,
+            total,
+            page: Number(page),
+            totalPages: Math.ceil(total / Number(limit))
         });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -92,7 +105,7 @@ async function updateProduct(req, res) {
         if (categoryId !== undefined) {
             const categoryExists = await Category.findById(categoryId);
             if (!categoryExists) {
-                return res.status(404).json({ message: "Category not found" });
+                return res.status(404).json({ success: false, message: "Category not found" });
             }
             updates.category = categoryId;
         }
@@ -104,19 +117,16 @@ async function updateProduct(req, res) {
         if (tier !== undefined) updates.tier = tier;
         if (bulkInfo !== undefined) updates.bulkInfo = bulkInfo;
 
-        // Handle images: keep existing + upload new ones
         if (keepImages !== undefined || (req.files && req.files.length > 0)) {
             const currentProduct = await Products.findById(req.params.id);
             if (!currentProduct) {
-                return res.status(404).json({ message: "Product not found" });
+                return res.status(404).json({ success: false, message: "Product not found" });
             }
 
-            // keepImages may be a single string or an array
             const keptUrls = keepImages
                 ? (Array.isArray(keepImages) ? keepImages : [keepImages])
                 : [];
 
-            // Delete Cloudinary images that were removed
             const removedUrls = (currentProduct.productImages || []).filter(url => !keptUrls.includes(url));
             await Promise.allSettled(
                 removedUrls.map(url => {
@@ -125,7 +135,6 @@ async function updateProduct(req, res) {
                 })
             );
 
-            // Upload new images
             let newUrls = [];
             if (req.files && req.files.length > 0) {
                 newUrls = await Promise.all(
@@ -143,14 +152,14 @@ async function updateProduct(req, res) {
         ).populate('category', 'name slug');
 
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
 
         return res.status(200).json({ success: true, product });
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -162,10 +171,9 @@ async function deleteProduct(req, res) {
         const product = await Products.findByIdAndDelete(req.params.id);
 
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
 
-        // Delete images from Cloudinary (non-blocking — don't fail the request)
         if (product.productImages && product.productImages.length > 0) {
             await Promise.allSettled(
                 product.productImages.map(url => {
@@ -178,7 +186,8 @@ async function deleteProduct(req, res) {
         return res.status(200).json({ success: true, message: "Deleted successfully" });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -190,7 +199,7 @@ async function updateStock(req, res) {
         const { stock } = req.body;
 
         if (stock == null || stock < 0) {
-            return res.status(400).json({ message: "Invalid stock" });
+            return res.status(400).json({ success: false, message: "Invalid stock" });
         }
 
         const product = await Products.findByIdAndUpdate(
@@ -199,10 +208,15 @@ async function updateStock(req, res) {
             { new: true }
         );
 
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
         return res.status(200).json({ success: true, product });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 
@@ -214,7 +228,7 @@ async function toggleAvailability(req, res) {
         const product = await Products.findById(req.params.id);
 
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ success: false, message: "Product not found" });
         }
 
         product.availability = !product.availability;
@@ -223,7 +237,8 @@ async function toggleAvailability(req, res) {
         return res.status(200).json({ success: true, product });
 
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        console.error(error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     }
 }
 

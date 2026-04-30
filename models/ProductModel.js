@@ -63,8 +63,12 @@ const productSchema = new mongoose.Schema({
         min: 0,
         default: 0
     }
-}, { timestamps: true })
+}, { timestamps: true });
 
-productSchema.index({ productName: 'text', category: 'text' });
+// Text index only on string fields — category is an ObjectId ref and must be excluded
+productSchema.index({ productName: 'text', desc: 'text', materialSpecifications: 'text' });
 
-module.exports = mongoose.model('product', productSchema)
+// Performance index for category-filtered product queries
+productSchema.index({ category: 1, availability: 1, createdAt: -1 });
+
+module.exports = mongoose.model('product', productSchema);
