@@ -1,0 +1,12 @@
+diff --git a/node_modules/express-mongo-sanitize/index.js b/node_modules/express-mongo-sanitize/index.js
+index 1d57357..48a6ebf 100644
+--- a/node_modules/express-mongo-sanitize/index.js
++++ b/node_modules/express-mongo-sanitize/index.js
+@@ -110,7 +110,6 @@ function middleware(options = {}) {
+     ['body', 'params', 'headers', 'query'].forEach(function (key) {
+       if (req[key]) {
+         const { target, isSanitized } = _sanitize(req[key], options);
+-        req[key] = target;
+         if (isSanitized && hasOnSanitize) {
+           options.onSanitize({
+             req,
