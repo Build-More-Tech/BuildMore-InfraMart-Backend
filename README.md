@@ -272,7 +272,19 @@ Manage technical specification files linked to products.
 | password | String | Required, min 8 chars, hashed |
 | role | String | `USER` or `ADMIN` (default: `USER`) |
 | phone | String | Max 10 chars |
-| address | Array | Embedded address subdocuments |
+| address | Array | Embedded address subdocuments (see Address fields below) |
+
+### Address (embedded in User / saved via AddressModel)
+| Field | Type | Notes |
+|---|---|---|
+| building | String | Optional — building/house no. |
+| area | String | Required — area/street |
+| landmark | String | Optional |
+| city | String | Required |
+| state | String | Required |
+| pincode | String | Required |
+| country | String | Default: `India` |
+| alternatephone | String | Optional |
 
 ### Product
 | Field | Type | Notes |
@@ -300,7 +312,8 @@ Manage technical specification files linked to products.
 | items | Array | product ref, name, price, quantity |
 | totalAmount | Number | |
 | status | String | See statuses above |
-| shippingAddress | Object | Embedded |
+| paymentMethod | String | `ONLINE` or `COD` (default: `COD`) |
+| shippingAddress | Object | Embedded (see Address fields below) |
 | notes | String | |
 | cancelledAt | Date | Populated on cancellation |
 | cancelReason | String | Populated on cancellation |
@@ -423,6 +436,7 @@ Paginated list responses include:
 │   ├── userModel.js
 │   ├── CategoryModel.js
 │   ├── ProductModel.js
+│   ├── AddressModel.js
 │   ├── OrderModel.js
 │   ├── RFQModel.js
 │   ├── ShipmentModel.js
