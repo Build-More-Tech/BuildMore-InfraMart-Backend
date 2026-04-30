@@ -15,7 +15,8 @@ const shippingAddressSchema = new mongoose.Schema({
     city: { type: String, required: true },
     state: { type: String, required: true },
     pincode: { type: String, required: true },
-    country: { type: String, required: true }
+    country: { type: String, required: true, default: 'India' },
+    alternatephone: String
 }, { _id: false });
 
 const orderSchema = new mongoose.Schema({
@@ -29,6 +30,11 @@ const orderSchema = new mongoose.Schema({
         default: 'PENDING'
     },
     shippingAddress: shippingAddressSchema,
+    paymentMethod: {
+        type: String,
+        enum: ['ONLINE', 'COD'],
+        default: 'COD'
+    },
     notes: String,
     cancelledAt: Date,
     cancelReason: String
