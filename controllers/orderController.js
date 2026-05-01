@@ -1,4 +1,4 @@
-const Order = require('../models/orderModel');
+const Order = require('../models/OrderModel');
 const Product = require('../models/ProductModel');
 const { sendOrderConfirmation, sendOrderStatusUpdate } = require('../services/emailService');
 const User = require('../models/userModel');
