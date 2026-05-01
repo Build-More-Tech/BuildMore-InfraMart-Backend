@@ -76,6 +76,20 @@ npm start
 - **Base URL:** `https://buildmore-inframart-backend.onrender.com`
 - Hosted on Render
 
+The `postinstall` script runs `patch-package` automatically on deployment to apply compatibility fixes (e.g., `express-mongo-sanitize` patch for Express 5).
+
+---
+
+## Patches
+
+This project uses [`patch-package`](https://github.com/ds300/patch-package) to maintain fixes for npm packages that can't be upgraded yet:
+
+| Package | Issue | Patch File |
+|---------|-------|------------|
+| `express-mongo-sanitize@2.2.0` | Incompatible with Express 5 (tries to reassign read-only `req.query`) | `patches/express-mongo-sanitize+2.2.0.patch` |
+
+Patches are applied automatically via the `postinstall` script. To add a new patch, edit the package in `node_modules` then run `npx patch-package <package-name>`.
+
 ---
 
 ## Authentication
