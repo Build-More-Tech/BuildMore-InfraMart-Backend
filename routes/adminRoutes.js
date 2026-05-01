@@ -29,6 +29,14 @@ const {
     removeSubcategory
 } = require('../controllers/categoryController');
 
+const {
+    getAllFees,
+    createFee,
+    updateFee,
+    deleteFee,
+    toggleFee
+} = require('../controllers/feeController');
+
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 
 const multer = require('multer');
@@ -84,5 +92,24 @@ router.post('/categories/:id/subcategories', isAuthorized, isAdmin, addSubcatego
 
 // Remove subcategory from a category
 router.delete('/categories/:id/subcategories/:subId', isAuthorized, isAdmin, removeSubcategory);
+
+// ==============================
+// 💰 ADMIN FEE ROUTES
+// ==============================
+
+// Get all fees (admin)
+router.get('/fees', isAuthorized, isAdmin, getAllFees);
+
+// Create a fee
+router.post('/fees', isAuthorized, isAdmin, createFee);
+
+// Update a fee
+router.put('/fees/:id', isAuthorized, isAdmin, updateFee);
+
+// Delete a fee
+router.delete('/fees/:id', isAuthorized, isAdmin, deleteFee);
+
+// Toggle fee enabled/disabled
+router.patch('/fees/:id/toggle', isAuthorized, isAdmin, toggleFee);
 
 module.exports = router;

@@ -267,6 +267,32 @@ Manage technical specification files linked to products.
 
 ---
 
+### Fee Routes — `/api/fees`
+
+Public endpoint used by Cart and Checkout to fetch applicable fees.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/` | No | Get all enabled fees |
+
+---
+
+### Admin — Fee Management — `/api/admin`
+
+> Requires `ADMIN` role.
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/fees` | Admin | List all fees (enabled and disabled) |
+| POST | `/fees` | Admin | Create a new fee |
+| PUT | `/fees/:id` | Admin | Update a fee |
+| DELETE | `/fees/:id` | Admin | Delete a fee |
+| PATCH | `/fees/:id/toggle` | Admin | Toggle fee enabled/disabled |
+
+**Fee Conditions:** `always`, `min_items` (applies when item count ≥ `conditionValue`), `min_amount` (applies when subtotal ≥ `conditionValue`)
+
+---
+
 ## Data Models
 
 ### Category
@@ -384,6 +410,16 @@ Manage technical specification files linked to products.
 | uploadedBy | ObjectId | ref: User |
 | description | String | |
 
+### Fee
+| Field | Type | Notes |
+|---|---|---|
+| name | String | Required |
+| amount | Number | Required, min 0 |
+| enabled | Boolean | Default: true |
+| condition | String | `always`, `min_items`, `min_amount` |
+| conditionValue | Number | null when condition is `always`; item count or subtotal threshold otherwise |
+| createdAt | Date | Auto-set |
+
 ---
 
 ## Standard Response Format
@@ -444,7 +480,8 @@ Paginated list responses include:
 │   ├── rfqRoutes.js
 │   ├── shipmentRoutes.js
 │   ├── complianceRoutes.js
-│   └── specsRoutes.js
+│   ├── specsRoutes.js
+│   └── feeRoutes.js            # Public fee endpoint (Cart/Checkout)
 ├── controllers/            # Business logic for each route module
 ├── models/
 │   ├── userModel.js
@@ -456,6 +493,7 @@ Paginated list responses include:
 │   ├── ShipmentModel.js
 │   ├── ComplianceDocModel.js
 │   ├── SpecSheetModel.js
+│   ├── FeeModel.js
 │   └── CounterModel.js         # Auto-increment counters for order/RFQ numbers
 ├── services/
 │   ├── auth.js             # JWT sign/verify
