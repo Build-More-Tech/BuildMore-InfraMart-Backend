@@ -41,12 +41,11 @@ const orderSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate order number before save (atomic — no race condition)
-orderSchema.pre('save', async function (next) {
+orderSchema.pre('save', async function () {
     if (!this.orderNumber) {
         const seq = await Counter.nextSequence('order');
         this.orderNumber = `BM-${String(seq).padStart(6, '0')}`;
     }
-    next();
 });
 
 // Indexes for common query patterns
