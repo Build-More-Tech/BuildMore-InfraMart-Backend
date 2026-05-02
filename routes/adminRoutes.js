@@ -37,6 +37,15 @@ const {
     toggleFee
 } = require('../controllers/feeController');
 
+const {
+    getAllBanners,
+    createBanner,
+    updateBanner,
+    deleteBanner,
+    toggleBanner,
+    reorderBanners,
+} = require('../controllers/bannerController');
+
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 
 const multer = require('multer');
@@ -111,5 +120,27 @@ router.delete('/fees/:id', isAuthorized, isAdmin, deleteFee);
 
 // Toggle fee enabled/disabled
 router.patch('/fees/:id/toggle', isAuthorized, isAdmin, toggleFee);
+
+// ==============================
+// 🖼️ ADMIN BANNER ROUTES
+// ==============================
+
+// Get all banners (incl. inactive)
+router.get('/banners', isAuthorized, isAdmin, getAllBanners);
+
+// Create banner with image upload
+router.post('/banners', isAuthorized, isAdmin, upload.single('image'), createBanner);
+
+// Update banner (optional new image)
+router.put('/banners/:id', isAuthorized, isAdmin, upload.single('image'), updateBanner);
+
+// Delete banner + Cloudinary cleanup
+router.delete('/banners/:id', isAuthorized, isAdmin, deleteBanner);
+
+// Toggle banner active/inactive
+router.patch('/banners/:id/toggle', isAuthorized, isAdmin, toggleBanner);
+
+// Reorder banners — body: { order: [{ id, order }, ...] }
+router.patch('/banners/reorder', isAuthorized, isAdmin, reorderBanners);
 
 module.exports = router;
