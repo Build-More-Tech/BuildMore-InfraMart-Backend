@@ -46,6 +46,15 @@ const {
     reorderBanners,
 } = require('../controllers/bannerController');
 
+const {
+    getAllOffers,
+    createOffer,
+    updateOffer,
+    deleteOffer,
+    toggleOffer,
+    reorderOffers,
+} = require('../controllers/offerController');
+
 const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 
 const multer = require('multer');
@@ -142,5 +151,27 @@ router.patch('/banners/:id/toggle', isAuthorized, isAdmin, toggleBanner);
 
 // Reorder banners — body: { order: [{ id, order }, ...] }
 router.patch('/banners/reorder', isAuthorized, isAdmin, reorderBanners);
+
+// ==============================
+// 🎁 ADMIN OFFER ROUTES
+// ==============================
+
+// Get all offers (incl. inactive)
+router.get('/offers', isAuthorized, isAdmin, getAllOffers);
+
+// Create offer with image upload
+router.post('/offers', isAuthorized, isAdmin, upload.single('image'), createOffer);
+
+// Update offer (optional new image)
+router.put('/offers/:id', isAuthorized, isAdmin, upload.single('image'), updateOffer);
+
+// Delete offer + Cloudinary cleanup
+router.delete('/offers/:id', isAuthorized, isAdmin, deleteOffer);
+
+// Toggle offer active/inactive
+router.patch('/offers/:id/toggle', isAuthorized, isAdmin, toggleOffer);
+
+// Reorder offers — body: { order: [{ id, order }, ...] }
+router.patch('/offers/reorder', isAuthorized, isAdmin, reorderOffers);
 
 module.exports = router;
