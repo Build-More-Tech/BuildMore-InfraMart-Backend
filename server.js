@@ -19,6 +19,7 @@ const shipmentRoutes = require('./routes/shipmentRoutes');
 const complianceRoutes = require('./routes/complianceRoutes');
 const specsRoutes = require('./routes/specsRoutes');
 const feeRoutes = require('./routes/feeRoutes');
+const marketingRoutes = require('./routes/marketingRoutes');
 
 const app = express();
 
@@ -81,6 +82,7 @@ app.use('/api/shipments', shipmentRoutes);   // 📦 Logistics/shipment tracking
 app.use('/api/compliance', complianceRoutes); // 📋 Compliance documents
 app.use('/api/specs', specsRoutes);          // 📄 Technical spec sheets
 app.use('/api/fees', feeRoutes);             // 💰 Public fees (Cart/Checkout)
+app.use('/api/marketing', marketingRoutes);    // 📢 Banners & Offers
 
 // ==============================
 // 🔴 404 HANDLER

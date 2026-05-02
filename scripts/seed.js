@@ -8,15 +8,19 @@
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-require('dotenv').config({ path: '.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 const User           = require('../models/userModel');
+const Category       = require('../models/CategoryModel');
 const Product        = require('../models/ProductModel');
 const Order          = require('../models/OrderModel');
 const RFQ            = require('../models/RFQModel');
 const Shipment       = require('../models/ShipmentModel');
 const ComplianceDoc  = require('../models/ComplianceDocModel');
 const SpecSheet      = require('../models/SpecSheetModel');
+const Banner         = require('../models/BannerModel');
+const Offer          = require('../models/OfferModel');
 
 // ─────────────────────────────────────────────
 // HELPERS
@@ -273,6 +277,9 @@ async function seed() {
         Shipment.deleteMany({}),
         ComplianceDoc.deleteMany({}),
         SpecSheet.deleteMany({}),
+        Banner.deleteMany({}),
+        Offer.deleteMany({}),
+        Category.deleteMany({}),
     ]);
     console.log('Cleared all collections');
 
@@ -282,8 +289,25 @@ async function seed() {
     const [admin, userRajesh, userPriya, userArjun] = users;
     console.log(`Seeded ${users.length} users`);
 
+    // ── Categories ─────────────────────────────
+    const categories = await Category.create([
+        { name: 'Steel & Metals' },
+        { name: 'Cement & Concrete' },
+        { name: 'Pipes & Fittings' },
+        { name: 'Waterproofing' },
+        { name: 'Masonry & Blocks' }
+    ]);
+    console.log(`Seeded ${categories.length} categories`);
+
+    const catMap = {};
+    categories.forEach(c => catMap[c.name] = c._id);
+
     // ── Products ───────────────────────────────
-    const products = await Product.insertMany(PRODUCTS);
+    const productsToSeed = PRODUCTS.map(p => ({
+        ...p,
+        category: catMap[p.category]
+    }));
+    const products = await Product.insertMany(productsToSeed);
     const [tmtBar, cement, hdpePipe, iBeam, waterproofing, aacBlock, ssPipe] = products;
     console.log(`Seeded ${products.length} products`);
 
@@ -659,6 +683,83 @@ async function seed() {
     ]);
     console.log(`Seeded ${specSheets.length} spec sheets`);
 
+    // ── Banners ───────────────────────────────
+    const banners = await Banner.create([
+        {
+            image: '/images/buildhero.jpg',
+            tag: 'Enterprise Procurement',
+            headline: 'Build Better.',
+            headlineAccent: 'Buy Smarter.',
+            sub: 'Your one-stop destination for high-quality construction materials — reliable delivery and competitive pricing for any project size.',
+            cta: 'Shop Now',
+            ctaTo: '/products',
+            order: 1
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1581094120973-10d9be8a1290?q=80&w=2000&auto=format&fit=crop',
+            tag: 'Bulk Orders',
+            headline: 'More Volume.',
+            headlineAccent: 'Better Pricing.',
+            sub: 'Submit RFQs for bulk procurement and get competitive quotes from verified suppliers across 15+ material categories.',
+            cta: 'Request Quote',
+            ctaTo: '/rfqs',
+            order: 2
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2000&auto=format&fit=crop',
+            tag: '15+ Categories',
+            headline: 'Everything',
+            headlineAccent: 'On One Platform.',
+            sub: 'From cement and tiles to electrical and plumbing — source all your construction materials from a single trusted marketplace.',
+            cta: 'Browse Categories',
+            ctaTo: '/products/categories',
+            order: 3
+        },
+        {
+            image: 'https://images.unsplash.com/photo-1541888946425-d81bb19480c5?q=80&w=2000&auto=format&fit=crop',
+            tag: 'Fast Delivery',
+            headline: 'Order Today.',
+            headlineAccent: 'Deliver Tomorrow.',
+            sub: 'Real-time shipment tracking and priority logistics ensure your materials arrive on time, every time.',
+            cta: 'View Products',
+            ctaTo: '/products',
+            order: 4
+        }
+    ]);
+    console.log(`Seeded ${banners.length} banners`);
+
+    // ── Offers ────────────────────────────────
+    const offers = await Offer.create([
+        {
+            title: 'Weekend Construction Bumper',
+            tag: 'Limited Time',
+            discount: 'Extra 15% OFF',
+            desc: 'Get an additional discount on all structural steel and power tools over ₹40,000.',
+            color: 'from-orange-600 to-red-700',
+            image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2000&auto=format&fit=crop',
+            order: 1
+        },
+        {
+            title: 'Bulk Infrastructure Blowout',
+            tag: 'Bumper Offer',
+            discount: 'Buy 5, Get 1 FREE',
+            desc: 'On all safety equipment and sitewide hardware kits. Stock up for your next project.',
+            color: 'from-blue-700 to-indigo-900',
+            image: 'https://images.unsplash.com/photo-1581094120973-10d9be8a1290?q=80&w=2000&auto=format&fit=crop',
+            order: 2
+        },
+        {
+            title: 'Premium Project Pack',
+            tag: 'Flash Deal',
+            discount: 'Flat ₹40,000 Cashback',
+            desc: 'When you finalize your first procurement order over ₹400,000 this month.',
+            color: 'from-emerald-700 to-teal-900',
+            image: 'https://images.unsplash.com/photo-1541888946425-d81bb19480c5?q=80&w=2000&auto=format&fit=crop',
+            order: 3
+        }
+    ]);
+    console.log(`Seeded ${offers.length} offers`);
+
     // ── Summary ────────────────────────────────
     console.log('\nSeed complete.');
     console.log('─────────────────────────────────');
@@ -667,8 +768,12 @@ async function seed() {
     console.log(`  Orders         : ${orders.length}`);
     console.log(`  RFQs           : ${rfqs.length}`);
     console.log(`  Shipments      : ${shipments.length}`);
-    console.log(`  Compliance Docs: ${complianceDocs.length}`);
-    console.log(`  Spec Sheets    : ${specSheets.length}`);
+    console.log(`  Compliance Docs: ${complianceDocs.length}
+  Spec Sheets    : ${specSheets.length}
+  Banners        : ${banners.length}
+  Offers         : ${offers.length}
+  Categories     : ${categories.length}
+`);
     console.log('─────────────────────────────────');
     console.log('\nAdmin credentials:');
     console.log('  Email   : admin@inframart.com');
