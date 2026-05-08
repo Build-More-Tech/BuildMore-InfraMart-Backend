@@ -10,9 +10,14 @@ const {
     updateProfile,
     addAddress,
     updateAddress,
-    deleteAddress
+    deleteAddress,
+    getAllUsers,
+    getSingleUser,
+    deleteUser,
+    changeUserRole
 } = require('../controllers/userControllers');
-const { isAuthorized } = require('../services/isAuthorized');
+// const { isAuthorized } = require('../services/isAuthorized');
+const { isAuthorized, isAdmin } = require('../services/isAuthorized');
 
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -42,5 +47,41 @@ router.put('/profile', isAuthorized, updateProfile);
 router.post('/address', isAuthorized, addAddress);
 router.put('/address/:addressId', isAuthorized, updateAddress);
 router.delete('/address/:addressId', isAuthorized, deleteAddress);
+
+// ==============================
+// 👥 ADMIN USER MANAGEMENT ROUTES
+// ==============================
+
+// GET ALL USERS
+router.get(
+    '/all-users',
+    isAuthorized,
+    isAdmin,
+    getAllUsers
+);
+
+// GET SINGLE USER
+router.get(
+    '/single-user/:id',
+    isAuthorized,
+    isAdmin,
+    getSingleUser
+);
+
+// DELETE USER
+router.delete(
+    '/delete-user/:id',
+    isAuthorized,
+    isAdmin,
+    deleteUser
+);
+
+// CHANGE USER ROLE
+router.patch(
+    '/change-role/:id',
+    isAuthorized,
+    isAdmin,
+    changeUserRole
+);
 
 module.exports = router;
