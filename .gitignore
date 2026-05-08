@@ -1,4 +1,5 @@
 .env
 .env.local
+.env.download
 .env.production
 node_modules/

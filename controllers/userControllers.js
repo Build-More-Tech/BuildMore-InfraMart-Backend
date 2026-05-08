@@ -287,6 +287,150 @@ async function deleteAddress(req, res) {
     }
 }
 
+// ==============================
+// 👥 GET ALL USERS (ADMIN)
+// ==============================
+async function getAllUsers(req, res) {
+    try {
+
+        const users = await User.find().select('-password');
+
+        return res.status(200).json({
+            success: true,
+            users
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+
+    }
+}
+
+// ==============================
+// 👤 GET SINGLE USER (ADMIN)
+// ==============================
+async function getSingleUser(req, res) {
+    try {
+
+        const { id } = req.params;
+
+        const user = await User.findById(id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+
+    }
+}
+
+// ==============================
+// ❌ DELETE USER (ADMIN)
+// ==============================
+async function deleteUser(req, res) {
+    try {
+
+        const { id } = req.params;
+
+        const user = await User.findByIdAndDelete(id);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'User deleted successfully'
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+
+    }
+}
+
+// ==============================
+// 🔄 CHANGE USER ROLE (ADMIN)
+// ==============================
+async function changeUserRole(req, res) {
+    try {
+
+        const { id } = req.params;
+        const { role } = req.body;
+
+        if (!['USER', 'ADMIN'].includes(role)) {
+
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid role'
+            });
+
+        }
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { role },
+            { new: true }
+        ).select('-password');
+
+        if (!user) {
+
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'User role updated successfully',
+            user
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+
+    }
+}
+
 module.exports = {
     handleLogin,
     handleSignup,
@@ -296,5 +440,9 @@ module.exports = {
     updateProfile,
     addAddress,
     updateAddress,
-    deleteAddress
+    deleteAddress,
+    getAllUsers,
+    getSingleUser,
+    deleteUser,
+    changeUserRole
 };
