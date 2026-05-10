@@ -20,6 +20,9 @@ const complianceRoutes = require('./routes/complianceRoutes');
 const specsRoutes = require('./routes/specsRoutes');
 const feeRoutes = require('./routes/feeRoutes');
 const marketingRoutes = require('./routes/marketingRoutes');
+const testimonialRoutes = require('./routes/testimonialRoutes');
+const affiliationRoutes = require('./routes/affiliationRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
 
 const app = express();
 
@@ -85,6 +88,9 @@ app.use('/api/compliance', complianceRoutes); // 📋 Compliance documents
 app.use('/api/specs', specsRoutes);          // 📄 Technical spec sheets
 app.use('/api/fees', feeRoutes);             // 💰 Public fees (Cart/Checkout)
 app.use('/api/marketing', marketingRoutes);    // 📢 Banners & Offers
+app.use('/api/testimonials', testimonialRoutes); //Testimonal Routes
+app.use('/api/affiliations', affiliationRoutes); //Affiliation Routes
+app.use('/api/media', mediaRoutes); //Media routes
 
 // ==============================
 // 🔴 404 HANDLER
