@@ -1,0 +1,104 @@
+const Media = require('../models/MediaModel');
+const { uploadToS3 } = require('../services/s3');
+
+const {
+    uploadBuffer,
+    uploadRawFile
+} = require('../services/cloudinary');
+
+/**
+ * UPLOAD FILE
+ */
+exports.uploadFile = async (req, res) => {
+
+    try {
+
+        if (!req.file) {
+
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const folder = req.body.folder || 'general';
+
+        let fileUrl;
+
+       let uploadResult;
+
+/**
+ * IMAGE => CLOUDINARY
+ */
+if (req.file.mimetype.startsWith('image/')) {
+
+    const imageUrl = await uploadBuffer(
+        req.file.buffer,
+        folder
+    );
+
+    uploadResult = {
+        fileUrl: imageUrl,
+        provider: 'CLOUDINARY'
+    };
+
+} else {
+
+    /**
+     * DOCUMENTS => S3/SPACES
+     */
+    const s3Result = await uploadToS3(
+        req.file,
+        folder
+    );
+
+    uploadResult = {
+        fileUrl: s3Result.fileUrl,
+        fileName: s3Result.fileName,
+        provider: 'SPACES'
+    };
+}
+
+        /**
+         * SAVE MEDIA
+         */
+       const media = await Media.create({
+
+    fileName:
+        uploadResult.fileName ||
+        Date.now().toString(),
+
+    originalName: req.file.originalname,
+
+    fileUrl: uploadResult.fileUrl,
+
+    mimeType: req.file.mimetype,
+
+    size: req.file.size,
+
+    folder,
+
+    uploadedBy: req.user?._id || null,
+
+    provider: uploadResult.provider
+});
+
+        return res.status(201).json({
+
+            success: true,
+
+            message: 'File uploaded successfully',
+
+            media
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+        });
+    }
+};
