@@ -1,4 +1,5 @@
 const Media = require('../models/MediaModel');
+const { uploadToS3 } = require('../services/s3');
 
 const {
     uploadBuffer,
@@ -24,51 +25,63 @@ exports.uploadFile = async (req, res) => {
 
         let fileUrl;
 
-        /**
-         * IMAGE UPLOAD
-         */
-        if (
-            req.file.mimetype.startsWith('image/')
-        ) {
+       let uploadResult;
 
-            fileUrl = await uploadBuffer(
-                req.file.buffer,
-                folder
-            );
+/**
+ * IMAGE => CLOUDINARY
+ */
+if (req.file.mimetype.startsWith('image/')) {
 
-        } else {
+    const imageUrl = await uploadBuffer(
+        req.file.buffer,
+        folder
+    );
 
-            /**
-             * RAW FILE UPLOAD
-             */
-            fileUrl = await uploadRawFile(
-                req.file.buffer,
-                folder,
-                Date.now().toString()
-            );
-        }
+    uploadResult = {
+        fileUrl: imageUrl,
+        provider: 'CLOUDINARY'
+    };
+
+} else {
+
+    /**
+     * DOCUMENTS => S3/SPACES
+     */
+    const s3Result = await uploadToS3(
+        req.file,
+        folder
+    );
+
+    uploadResult = {
+        fileUrl: s3Result.fileUrl,
+        fileName: s3Result.fileName,
+        provider: 'SPACES'
+    };
+}
 
         /**
          * SAVE MEDIA
          */
-        const media = await Media.create({
+       const media = await Media.create({
 
-            fileName: Date.now().toString(),
+    fileName:
+        uploadResult.fileName ||
+        Date.now().toString(),
 
-            originalName: req.file.originalname,
+    originalName: req.file.originalname,
 
-            fileUrl,
+    fileUrl: uploadResult.fileUrl,
 
-            mimeType: req.file.mimetype,
+    mimeType: req.file.mimetype,
 
-            size: req.file.size,
+    size: req.file.size,
 
-            folder,
+    folder,
 
-            uploadedBy: req.user?._id || null,
+    uploadedBy: req.user?._id || null,
 
-            provider: 'CLOUDINARY'
-        });
+    provider: uploadResult.provider
+});
 
         return res.status(201).json({
 
